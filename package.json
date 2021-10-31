@@ -1,0 +1,11 @@
+{
+	"main": "index.js",
+	"name": "yasha",
+	"dependencies": {
+		"discord.js": "^13.1.0",
+		"node-fetch": "^2.6.1",
+		"sodium": "^3.0.2",
+		"@discordjs/voice": "^0.6.0",
+		"sange": "github:ilikdoge/sange"
+	}
+}
