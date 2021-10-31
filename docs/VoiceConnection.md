@@ -20,3 +20,61 @@ const {VoiceChannel} = require('discord.js');
 
 VoiceConnection.connect(channel: VoiceChannel): Promise<VoiceConnection>
 ```
+
+Events
+
+Disconnected (occurs when switching channels)
+```js
+const {VoiceConnectionStatus} = require('@discordjs/voice');
+
+connection.on(VoiceConnectionStatus.Disconnected, () => {
+	// ignore this event, as the connection may automatically re-establish a connection
+});
+```
+
+Destroyed
+```js
+const {VoiceConnectionStatus} = require('@discordjs/voice');
+
+connection.on(VoiceConnectionStatus.Destroyed, () => {
+	// true disconnect, wont reconnect again
+	console.log('Disconnected');
+});
+```
+
+Error
+```js
+connection.on('error', (error) => {
+	console.error(error);
+
+	// also a true disconnect
+	// destroy event will be emitted
+});
+```
+
+Ready
+```js
+const {VoiceConnectionStatus} = require('@discordjs/voice');
+
+connection.on(VoiceConnectionStatus.Ready, () => {
+	console.log('Ready');
+});
+```
+
+Signalling
+```js
+const {VoiceConnectionStatus} = require('@discordjs/voice');
+
+connection.on(VoiceConnectionStatus.Signalling, () => {
+	console.log('Negotiating a connection to a channel');
+});
+```
+
+Connecting
+```js
+const {VoiceConnectionStatus} = require('@discordjs/voice');
+
+connection.on(VoiceConnectionStatus.Connecting, () => {
+	console.log('Connecting to the channel');
+});
+```

@@ -8,8 +8,10 @@ class ConnectionState{
 
 		this.onDisconnect = this.onDisconnect.bind(this);
 		this.onDestroy = this.onDestroy.bind(this);
+		this.onError = this.onError.bind(this);
 		this.connection.on(VoiceConnectionStatus.Disconnected, this.onDisconnect);
 		this.connection.on(VoiceConnectionStatus.Destroyed, this.onDestroy);
+		this.connection.on('error', this.onError);
 
 		this.awaitConnected();
 	}
@@ -30,12 +32,12 @@ class ConnectionState{
 			var callbacks = {
 				[VoiceConnectionStatus.Destroyed]: () => {
 					removeListeners();
-					reject(new Error('Destroyed'));
+					reject(new Error('Connection destroyed'));
 				},
 
 				[VoiceConnectionStatus.Disconnected]: () => {
 					removeListeners();
-					reject(new Error('Disconnected'));
+					reject(new Error('Connection disconnected'));
 				},
 
 				[VoiceConnectionStatus.Ready]: () => {
@@ -92,10 +94,15 @@ class ConnectionState{
 		this.destroy();
 	}
 
+	onError(){
+		this.destroy();
+	}
+
 	destroy(){
 		if(this.connection){
 			this.connection.removeListener(VoiceConnectionStatus.Disconnected, this.onDisconnect);
 			this.connection.removeListener(VoiceConnectionStatus.Destroyed, this.onDestroy);
+			this.connection.removeListener('error', this.onError);
 
 			if(this.connection.state.status != VoiceConnectionStatus.Destroyed)
 				this.connection.destroy(false);
