@@ -67,26 +67,7 @@ player.on('error', (error: Error) => {
 });
 ```
 
-Member Functions
-
-Subscribe (private)
-```js
-const {VoiceConnection} = require('@discordjs/voice');
-
-var subscription = player.subscribe(connection: VoiceConnection): Object;
-
-// unsubscribe
-subscription.unsubscribe();
-```
-
-Unubscribe (private)
-```js
-const {VoiceConnection} = require('@discordjs/voice');
-
-var subscription = player.subscribe(connection: VoiceConnection): Object;
-
-player.unsubscribe(subscription): void;
-```
+#### Member Functions
 
 Play a track
 ```js

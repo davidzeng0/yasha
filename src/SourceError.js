@@ -5,7 +5,7 @@ const errors = {
 	},
 
 	INVALID_RESPONSE: {
-		message: 'Invalid response from host',
+		message: 'Invalid response',
 		code: 2
 	},
 

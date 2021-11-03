@@ -18,6 +18,18 @@ class APISource{
 	async resolve(match){
 		return null;
 	}
+
+	async search(query){
+		return null;
+	}
+
+	async playlistOnce(id){
+		return null;
+	}
+
+	async playlist(id, length){
+		return null;
+	}
 }
 
 const youtube = new class Youtube extends APISource{
@@ -68,7 +80,7 @@ const youtube = new class Youtube extends APISource{
 		if(match.id)
 			track = this.api.get(match.id);
 		if(match.list)
-			list = this.api.playlistOnce(match.list);
+			list = this.api.playlist_once(match.list);
 		var result = await Promise.allSettled([track, list]);
 
 		if(result[0].status == 'rejected' && result[1].status == 'rejected')
@@ -90,12 +102,12 @@ const youtube = new class Youtube extends APISource{
 		}
 	}
 
-	async search(query){
-		return this.api.search(query);
+	async search(query, continuation){
+		return this.api.search(query, continuation);
 	}
 
 	async playlistOnce(id, continuation){
-		return this.api.playlistOnce(id, continuation);
+		return this.api.playlist_once(id, continuation);
 	}
 
 	async playlist(id, length){
@@ -103,7 +115,7 @@ const youtube = new class Youtube extends APISource{
 	}
 
 	setCookie(cookie){
-		this.api.setCookie(cookie);
+		this.api.set_cookie(cookie);
 	}
 };
 
@@ -130,8 +142,16 @@ const soundcloud = new class Soundcloud extends APISource{
 		return await this.api.resolve(match);
 	}
 
-	async search(query){
-		return this.api.search(query);
+	async search(query, offset, length){
+		return this.api.search(query, offset, length);
+	}
+
+	async playlistOnce(id, offset, length){
+		return this.api.playlist_once(id, offset, length);
+	}
+
+	async playlist(id, length){
+		return this.api.playlist(id, length);
 	}
 }
 
@@ -171,17 +191,29 @@ const spotify = new class Spotify extends APISource{
 		if(match.track)
 			return this.api.get(match.track);
 		if(match.playlist)
-			return this.api.playlistOnce(match.playlist);
+			return this.api.playlist_once(match.playlist);
 		if(match.album)
-			return this.api.albumOnce(match.album);
+			return this.api.album_once(match.album);
 	}
 
-	async search(query){
-		return this.api.search(query);
+	async search(query, offset, length){
+		return this.api.search(query, offset, length);
 	}
 
-	async playlistOnce(id, continuation){
-		return this.api.playlistOnce(id, continuation);
+	async playlistOnce(id, offset, length){
+		return this.api.playlist_once(id, offset, length);
+	}
+
+	async playlist(id, length){
+		return this.api.playlist(id, length);
+	}
+
+	async albumOnce(id, offset, length){
+		return this.api.album_once(id, offset, length);
+	}
+
+	setCookie(cookie){
+		this.api.set_cookie(cookie);
 	}
 }
 

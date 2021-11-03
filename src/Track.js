@@ -4,7 +4,7 @@ class TrackStream{
 		this.video = false;
 		this.audio = false;
 		this.bitrate = 0;
-		this.duration = 0;
+		this.duration = -1;
 		this.container = null;
 		this.codecs = null;
 	}
@@ -36,14 +36,15 @@ class TrackStream{
 	}
 
 	equals(other){
-		return false;
+		return this == other;
 	}
 }
 
 class TrackStreams extends Array{
-	constructor(live){
+	constructor(volume, live){
 		super();
 
+		this.volume = volume;
 		this.live = live;
 	}
 
@@ -56,6 +57,7 @@ class Track{
 	constructor(platform){
 		this.platform = platform;
 		this.playable = true;
+		this.duration = -1;
 	}
 
 	setOwner(name, icons){
@@ -74,9 +76,8 @@ class Track{
 		return this;
 	}
 
-	setStreams(streams, volume = 1){
+	setStreams(streams){
 		this.streams = streams;
-		this.volume = volume;
 
 		return this;
 	}
@@ -87,9 +88,6 @@ class Track{
 		return this;
 	}
 
-	/**
-	 * @returns {Promise<Track>}
-	 */
 	async getStreams(){
 		return null;
 	}
@@ -99,14 +97,11 @@ class Track{
 	}
 
 	equals(other){
-		return this.id == other.id && this.platform == other.platform;
+		return this == other || (this.platform == other.platform && this.id != null && this.id == other.id);
 	}
 }
 
 class TrackResults extends Array{
-	/**
-	 * @returns {Promise<TrackResults>}
-	 */
 	async next(){
 		return null;
 	}
@@ -116,15 +111,16 @@ class TrackPlaylist extends TrackResults{
 	setMetadata(title, description){
 		this.title = title;
 		this.description = description;
+
+		return this;
 	}
 
 	setFirstTrack(track){
 		this.first_track = track;
+
+		return this;
 	}
 
-	/**
-	 * @returns {Promise<TrackPlaylist>}
-	 */
 	async next(){
 		return null;
 	}
@@ -132,9 +128,9 @@ class TrackPlaylist extends TrackResults{
 
 class TrackImage{
 	constructor(url, width, height){
-		this.url = url || null;
-		this.width = width || 0;
-		this.height = height || 0;
+		this.url = url ?? null;
+		this.width = width ?? 0;
+		this.height = height ?? 0;
 	}
 
 	static from(array){
