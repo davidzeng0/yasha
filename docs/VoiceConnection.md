@@ -12,7 +12,7 @@ VoiceConnection.connect(channel).then((connection) => {
 });
 ```
 
-Functions
+#### Functions
 
 Connect
 ```js
@@ -21,7 +21,20 @@ const {VoiceChannel} = require('discord.js');
 VoiceConnection.connect(channel: VoiceChannel): Promise<VoiceConnection>
 ```
 
-Events
+Subscribe (see @discordjs/voice subscribe documentation)
+```js
+const {TrackPlayer} = require('yasha');
+
+var player = new TrackPlayer();
+var subscription = connection.subscribe(player);
+```
+
+Unubscribe
+```js
+subscription.unsubscribe();
+```
+
+#### Events
 
 Disconnected (occurs when switching channels)
 ```js

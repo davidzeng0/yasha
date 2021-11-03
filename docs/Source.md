@@ -58,13 +58,13 @@ if(result instanceof TrackPlaylist){
 }
 ```
 
-Functions
+#### Functions
 
 Resolve (static)
 ```js
 const {Track: {Track, TrackPlaylist}} = require('yasha');
 
-Source.resolve(string: String): Promise<Track | TrackPlaylist | null>
+Source.resolve(string: string): Promise<Track | TrackPlaylist | null>
 ```
 
 Sources
@@ -73,22 +73,22 @@ Youtube
 ```js
 const {Source: {Youtube}, Track: {TrackResults}} = require('yasha');
 
-Youtube.search(input: String): Promise<TrackResults>
+Youtube.search(input: string): Promise<TrackResults>
 
 // account cookie for age verification
-Youtube.setCookie(cookie: String): void
+Youtube.setCookie(cookie: string): void
 ```
 
 Soundcloud
 ```js
 const {Source: {Soundcloud}, Track: {TrackResults}} = require('yasha');
 
-Soundcloud.search(input: String): Promise<TrackResults>
+Soundcloud.search(input: string): Promise<TrackResults>
 ```
 
 Spotify
 ```js
 const {Source: {Spotify}, Track: {TrackResults}} = require('yasha');
 
-Spotify.search(input: String): Promise<TrackResults>
+Spotify.search(input: string): Promise<TrackResults>
 ```
