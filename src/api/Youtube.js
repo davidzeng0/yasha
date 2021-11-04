@@ -1002,11 +1002,15 @@ const api = new class YoutubeAPI{
 			}
 		}
 
+		var results = new YoutubeResults();
+
 		try{
-			return new YoutubeResults(body);
+			results.process(body);
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
+
+		return results;
 	}
 
 	set_cookie(cookiestr){
