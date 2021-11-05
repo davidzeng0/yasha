@@ -217,6 +217,7 @@ var switch_code = [
 var switch_code_regex = switch_code.map((c => '(' + c.content + ')')).join('|');
 
 function process_switch_content(switch_content, def){
+	// content.split(';').map(case => case.split(':'))
 	var content = [];
 	var default_index = -1;
 
@@ -565,9 +566,7 @@ class YoutubeTrack extends Track{
 }
 
 class YoutubeResults extends TrackResults{
-	constructor(body){
-		super();
-
+	process(body){
 		for(var item of body){
 			if(item.continuationItemRenderer)
 				this.set_continuation(item.continuationItemRenderer.continuationEndpoint.continuationCommand.token);
@@ -1003,11 +1002,15 @@ const api = new class YoutubeAPI{
 			}
 		}
 
+		var results = new YoutubeResults();
+
 		try{
-			return new YoutubeResults(body);
+			results.process(body);
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
+
+		return results;
 	}
 
 	set_cookie(cookiestr){

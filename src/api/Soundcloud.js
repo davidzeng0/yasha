@@ -77,9 +77,7 @@ class SoundcloudTrack extends Track{
 }
 
 class SoundcloudResults extends TrackResults{
-	constructor(query, start){
-		super();
-
+	set_continuation(query, start){
 		this.query = query;
 		this.start = start;
 	}
@@ -339,10 +337,12 @@ var api = new class SoundcloudAPI{
 		var body = await this.api_request('search/tracks', {q: encodeURIComponent(query), limit, offset});
 
 		try{
-			var results = new SoundcloudResults(query, offset + limit);
+			var results = new SoundcloudResults();
 
 			for(var item of body.collection)
 				results.push(new SoundcloudTrack(item));
+			if(body.collection.length)
+				results.set_continuation(query, offset + limit);
 			return results;
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
