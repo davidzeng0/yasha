@@ -1,6 +1,7 @@
 const Request = require('../Request');
 const SourceError = require('../SourceError');
 const Youtube = require('./Youtube');
+
 const {Track, TrackImage, TrackResults, TrackPlaylist} = require('../Track');
 
 class SpotifyTrack extends Track{

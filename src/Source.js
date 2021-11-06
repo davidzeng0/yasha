@@ -1,5 +1,6 @@
 class APISource{
 	constructor(api){
+		this.name = api;
 		this.api = require('./api/' + api);
 	}
 

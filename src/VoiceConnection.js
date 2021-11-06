@@ -1,5 +1,5 @@
 const voice = require('@discordjs/voice');
-const {VoiceConnectionStatus, VoiceConnectionDisconnectReason, VoiceConnectionState} = voice;
+const {VoiceConnectionStatus, VoiceConnectionDisconnectReason} = voice;
 
 class VoiceConnection extends voice.VoiceConnection{
 	constructor(channel, options){
@@ -12,6 +12,7 @@ class VoiceConnection extends voice.VoiceConnection{
 		this.guild = channel.guild;
 		this.guild.me.voice.connection = this;
 		this.connect_timeout = null;
+		this.connected = false;
 
 		super.rejoin();
 		super.rejoinAttempts--;
@@ -112,8 +113,11 @@ class VoiceConnection extends voice.VoiceConnection{
 
 		try{
 			await this.promise;
+
+			this.connected = true;
 		}catch(e){
-			this.emit('error', e);
+			if(this.connected)
+				this.emit('error', e);
 			this.destroy();
 		}finally{
 			clearTimeout(this.timeout);
@@ -145,5 +149,7 @@ class VoiceConnection extends voice.VoiceConnection{
 		return connection;
 	}
 }
+
+VoiceConnection.Status = VoiceConnectionStatus;
 
 module.exports = VoiceConnection;
