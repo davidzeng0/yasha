@@ -1,6 +1,6 @@
 const EventEmitter = require('events');
 
-const AudioPlayer = require('../ffmpeg/player');
+const AudioPlayer = require('sange');
 
 const sodium = require('sodium');
 
