@@ -21,13 +21,13 @@ class VoiceConnection extends voice.VoiceConnection{
 	disconnect_reason(reason){
 		switch(reason){
 			case VoiceConnectionDisconnectReason.AdapterUnavailable:
-				return "Adapter unavailable";
+				return 'Adapter unavailable';
 			case VoiceConnectionDisconnectReason.EndpointRemoved:
-				return "Endpoint removed";
+				return 'Endpoint removed';
 			case VoiceConnectionDisconnectReason.WebSocketClose:
-				return "WebSocket closed";
+				return 'WebSocket closed';
 			case VoiceConnectionDisconnectReason.Manual:
-				return "Manual disconnect";
+				return 'Manual disconnect';
 		}
 	}
 
@@ -43,7 +43,10 @@ class VoiceConnection extends voice.VoiceConnection{
 	}
 
 	onNetworkingError(error){
-		this.promise_reject(error);
+		if(this.promise)
+			this.promise_reject(error);
+		else
+			this.emit('error', error);
 		this.destroy();
 	}
 
@@ -125,7 +128,11 @@ class VoiceConnection extends voice.VoiceConnection{
 	static async connect(channel, options = {}){
 		if(!channel.joinable)
 			throw new Error(channel.full ? 'Channel is full' : 'No permissions');
-		var connection = channel.guild.me.voice.connection;
+		var voice_state = channel.guild.voiceStates.resolve(channel.guild.me.id);
+
+		if(!voice_state)
+			voice_state = channel.guild.voiceStates._add({user_id: channel.guild.me.id});
+		var connection = voice_state.connection;
 
 		if(!connection)
 			connection = new VoiceConnection(channel, options);
