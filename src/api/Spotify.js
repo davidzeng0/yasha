@@ -13,7 +13,7 @@ class SpotifyTrack extends Track{
 	}
 
 	async getStreams(){
-		return this.youtube_lookup(this);
+		return api.youtube_lookup(this);
 	}
 
 	get url(){
