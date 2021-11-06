@@ -43,7 +43,7 @@ class SpotifyPlaylist extends TrackPlaylist{
 
 	async next(){
 		if(this.id != null)
-			return await api.listOnce(this.type, this.id, this.start);
+			return await api.list_once(this.type, this.id, this.start);
 		return null;
 	}
 }
