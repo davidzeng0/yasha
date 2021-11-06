@@ -579,7 +579,7 @@ class YoutubeResults extends TrackResults{
 	extract_tracks(list){
 		for(var video of list){
 			if(!video.videoRenderer)
-				return;
+				continue;
 			video = video.videoRenderer;
 
 			var thumbs;
