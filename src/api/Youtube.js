@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 const Request = require('../Request');
 const SourceError = require('../SourceError');
+const util = require('./util');
+
 const {Track, TrackImage, TrackResults, TrackPlaylist, TrackStream, TrackStreams} = require('../Track');
 
 var js_variable = '[\\w_\\$][\\w\\d]*';
@@ -217,7 +219,6 @@ var switch_code = [
 var switch_code_regex = switch_code.map((c => '(' + c.content + ')')).join('|');
 
 function process_switch_content(switch_content, def){
-	// content.split(';').map(case => case.split(':'))
 	var content = [];
 	var default_index = -1;
 
@@ -356,7 +357,7 @@ var decoder = new class YoutubeDecoder{
 		var array_contents = n[1],
 			copy = n[2],
 			actions = n[4],
-			except = n[7] || n[9],
+			except = util.deepclone(n[7] || n[9]),
 			array = [],
 			actions_array = [],
 			result;
@@ -660,7 +661,7 @@ class YoutubeStream extends TrackStream{
 
 class YoutubeStreams extends TrackStreams{
 	constructor(start, playerResponse){
-		super(Math.min(1, Math.pow(10, (playerResponse.playerConfig.audioConfig.loudnessDb || 0) / -20)), playerResponse.videoDetails.isLive);
+		super(Math.min(1, Math.pow(10, (playerResponse.playerConfig.audioConfig.loudnessDb || 0) / -20)), playerResponse.videoDetails.isLive, start);
 
 		var {formats, adaptiveFormats, expiresInSeconds} = playerResponse.streamingData;
 

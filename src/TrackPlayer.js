@@ -151,79 +151,80 @@ class TrackPlayer extends EventEmitter{
 	}
 
 	send(frame){
-		for(var subscription of this.subscriptions)
-			this.send_frame_connection(frame, subscription.connection);
-	}
+		var subscriptions = this.subscriptions, connection;
 
-	send_frame_connection(frame, connection){
-		if(!connection.ready())
-			return;
-		connection.setSpeaking(true);
+		for(var i = 0; i < subscriptions.length; i++){
+			connection = subscriptions[i].connection;
 
-		var state = connection.state.networking.state,
-			connection_data = state.connectionData,
-			mode = connection_data.encryption_mode;
-		if(!mode){
-			switch(connection_data.encryptionMode){
-				case 'xsalsa20_poly1305_lite':
-					connection_data.encryption_mode = EncryptionMode.LITE;
+			if(!connection.ready())
+				return;
+			connection.setSpeaking(true);
+
+			var state = connection.state.networking.state,
+				connection_data = state.connectionData,
+				mode = connection_data.encryption_mode;
+			if(!mode){
+				switch(connection_data.encryptionMode){
+					case 'xsalsa20_poly1305_lite':
+						connection_data.encryption_mode = EncryptionMode.LITE;
+
+						break;
+					case 'xsalsa20_poly1305_suffix':
+						connection_data.encryption_mode = EncryptionMode.SUFFIX;
+
+						break;
+					default:
+						connection_data.encryption_mode = EncryptionMode.DEFAULT;
+
+						break;
+				}
+
+				mode = connection_data.encryption_mode;
+			}
+
+			connection_data.sequence++;
+			connection_data.timestamp += frame.frame_size;
+
+			if(connection_data.sequence > 65535)
+				connection_data.sequence = 0;
+			if(connection_data.timestamp > 4294967295)
+				connection_data.timestamp = 0;
+			audio_buffer.writeUIntBE(connection_data.sequence, 2, 2);
+			audio_buffer.writeUIntBE(connection_data.timestamp, 4, 4);
+			audio_buffer.writeUIntBE(connection_data.ssrc, 8, 4);
+
+			var len, buf;
+
+			switch(mode){
+				case EncryptionMode.LITE:
+					len = 16;
+					connection_data.nonce++;
+
+					if(connection_data.nonce > 4294967295)
+						connection_data.nonce = 0;
+					connection_nonce.writeUInt32BE(connection_data.nonce, 0);
+					buf = sodium.api.crypto_secretbox_easy(frame.buffer, connection_nonce, connection_data.secretKey);
+					audio_buffer.set(connection_nonce.slice(0, 4), 12 + buf.length);
 
 					break;
-				case 'xsalsa20_poly1305_suffix':
-					connection_data.encryption_mode = EncryptionMode.SUFFIX;
+				case EncryptionMode.SUFFIX:
+					len = 36;
+					sodium.api.randombytes_buf(random_bytes);
+					buf = sodium.api.crypto_secretbox_easy(frame.buffer, random_bytes, connection_data.secretKey);
+					audio_buffer.set(random_bytes, 12 + buf.length);
 
 					break;
-				default:
-					connection_data.encryption_mode = EncryptionMode.DEFAULT;
+				case EncryptionMode.DEFAULT:
+					len = 12;
+					audio_buffer.copy(audio_nonce, 0, 0, 12);
+					buf = sodium.api.crypto_secretbox_easy(frame.buffer, audio_nonce, connection_data.secretKey);
 
 					break;
 			}
 
-			mode = connection_data.encryption_mode;
+			audio_buffer.set(buf, 12);
+			state.udp.send(new Uint8Array(audio_buffer.buffer, 0, len + buf.length));
 		}
-
-		connection_data.sequence++;
-		connection_data.timestamp += frame.frame_size;
-
-		if(connection_data.sequence > 65535)
-			connection_data.sequence = 0;
-		if(connection_data.timestamp > 4294967295)
-			connection_data.timestamp = 0;
-		audio_buffer.writeUIntBE(connection_data.sequence, 2, 2);
-		audio_buffer.writeUIntBE(connection_data.timestamp, 4, 4);
-		audio_buffer.writeUIntBE(connection_data.ssrc, 8, 4);
-
-		var len, buf;
-
-		switch(mode){
-			case EncryptionMode.LITE:
-				len = 16;
-				connection_data.nonce++;
-
-				if(connection_data.nonce > 4294967295)
-					connection_data.nonce = 0;
-				connection_nonce.writeUInt32BE(connection_data.nonce, 0);
-				buf = sodium.api.crypto_secretbox_easy(frame.buffer, connection_nonce, connection_data.secretKey);
-				audio_buffer.set(connection_nonce.slice(0, 4), 12 + buf.length);
-
-				break;
-			case EncryptionMode.SUFFIX:
-				len = 36;
-				sodium.api.randombytes_buf(random_bytes);
-				buf = sodium.api.crypto_secretbox_easy(frame.buffer, random_bytes, connection_data.secretKey);
-				audio_buffer.set(random_bytes, 12 + buf.length);
-
-				break;
-			case EncryptionMode.DEFAULT:
-				len = 12;
-				audio_buffer.copy(audio_nonce, 0, 0, 12);
-				buf = sodium.api.crypto_secretbox_easy(frame.buffer, audio_nonce, connection_data.secretKey);
-
-				break;
-		}
-
-		audio_buffer.set(buf, 12);
-		state.udp.send(new Uint8Array(audio_buffer.slice(0, len + buf.length)));
 	}
 
 	start_silence_frames(){

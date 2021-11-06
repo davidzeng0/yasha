@@ -41,14 +41,19 @@ class TrackStream{
 }
 
 class TrackStreams extends Array{
-	constructor(volume, live){
+	constructor(volume, live, time){
 		super();
 
 		this.volume = volume;
 		this.live = live;
+		this.time = time;
 	}
 
 	expired(){
+		return false;
+	}
+
+	maybe_expired(){
 		return false;
 	}
 }

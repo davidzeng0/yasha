@@ -1,5 +1,7 @@
 const Request = require('../Request');
 const SourceError = require('../SourceError');
+const util = require('./util');
+
 const {Track, TrackImage, TrackResults, TrackPlaylist, TrackStream, TrackStreams} = require('../Track');
 
 class SoundcloudTrack extends Track{
@@ -115,11 +117,15 @@ class SoundcloudStream extends TrackStream{
 
 class SoundcloudStreams extends TrackStreams{
 	constructor(){
-		super(1, false);
+		super(1, false, Date.now());
 	}
 
 	expired(){
 		return false;
+	}
+
+	maybe_expired(){
+		return Date.now() - this.time > 5 * 60 * 1000;
 	}
 }
 
@@ -159,7 +165,7 @@ var api = new class SoundcloudAPI{
 			var id = /client_id:"([\w\d_-]+?)"/i.exec(script);
 
 			if(id && id[1]){
-				this.client_id = id[1];
+				this.client_id = util.deepclone(id[1]);
 
 				return;
 			}
