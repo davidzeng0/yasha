@@ -407,7 +407,7 @@ class TrackPlayer extends EventEmitter{
 	async start(){
 		if(!await this.load_streams() || !this.player) /* destroy could have been called while waiting */
 			return;
-		this.player.setURL('http://localhost:8888/videoplayback.webm');//this.stream.url);
+		this.player.setURL(this.stream.url);
 		this.player.start();
 	}
 
