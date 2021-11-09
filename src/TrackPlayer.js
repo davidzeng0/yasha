@@ -1,7 +1,7 @@
 const EventEmitter = require('events');
 
 const VoiceConnection = require('./VoiceConnection');
-const AudioPlayer = require('../ffmpeg/player');
+const AudioPlayer = require('sange');
 
 const sodium = require('sodium');
 
@@ -165,7 +165,7 @@ class TrackPlayer extends EventEmitter{
 	create_player(start_time){
 		this.destroy_player();
 
-		this.player = new AudioPlayer(audio_output, false);
+		this.player = new AudioPlayer(this.external_encrypt ? new Uint8Array(4096) : audio_output, false);
 		this.player.setOutput(2, 48000, 256000);
 
 		if(start_time)
@@ -407,7 +407,7 @@ class TrackPlayer extends EventEmitter{
 	async start(){
 		if(!await this.load_streams() || !this.player) /* destroy could have been called while waiting */
 			return;
-		this.player.setURL('http://localhost:8888/videoplayback.webm');//this.stream.url);
+		this.player.setURL(this.stream.url);
 		this.player.start();
 	}
 
