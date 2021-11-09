@@ -14,8 +14,9 @@ class VoiceConnection extends voice.VoiceConnection{
 		this.connect_timeout = null;
 		this.connected = false;
 
+		this._state.status = VoiceConnectionStatus.Ready;
 		super.rejoin();
-		super.rejoinAttempts--;
+		this._state.status = VoiceConnectionStatus.Signalling;
 		this.await_connection();
 	}
 
