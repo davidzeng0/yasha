@@ -35,8 +35,8 @@ class Packet{
 	buffer: Buffer; // frame data
 }
 
-player.on('packet', (packet: Packet) => {
-	console.log(`Packet: ${packet.frame_size} samples`);
+player.on('packet', (buffer: Buffer, frame_size: number) => {
+	console.log(`Packet: ${frame_size} samples`);
 });
 ```
 
@@ -59,11 +59,15 @@ player.on('finish', () => {
 Error
 ```js
 player.on('error', (error: Error) => {
-	console.log(`Error: ${error.message}`);
+	console.log(`Error playing the track: ${error.message}`);
 
-	// play the next track
-	player.play(nextTrack);
-	player.start();
+	if(nextTrack){
+		// continue to the next track
+		player.play(nextTrack);
+		player.start();
+	}else{
+		player.cleanup(); // release the internal player and its resources
+	}
 });
 ```
 
