@@ -5,11 +5,15 @@ const Youtube = require('./Youtube');
 const {Track, TrackImage, TrackResults, TrackPlaylist} = require('../Track');
 
 class SpotifyTrack extends Track{
-	constructor(track, artist){
+	constructor(){
 		super('Spotify');
+	}
 
+	from(track, artist){
 		this.setOwner(track.artists[track.artists.length - 1].name, artist ? TrackImage.from(artist.images) : null);
 		this.setMetadata(track.id, track.name, track.duration_ms / 1000, TrackImage.from(track.album.images));
+
+		return this;
 	}
 
 	async getStreams(){
@@ -176,7 +180,7 @@ const api = (new class SpotifyAPI{
 		var artist = await this.api_request('artists/' + author.id);
 
 		try{
-			return new SpotifyTrack(track, artist);
+			return new SpotifyTrack().from(track, artist);
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
@@ -194,7 +198,7 @@ const api = (new class SpotifyAPI{
 			results.set_continuation(query, start + data.tracks.items.length);
 		try{
 			for(var result of data.tracks.items)
-				results.push(new SpotifyTrack(result));
+				results.push(new SpotifyTrack().from(result));
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
@@ -221,10 +225,10 @@ const api = (new class SpotifyAPI{
 		try{
 			for(const item of tracks.items){
 				if(type == 'playlists' && item.track && !item.track.is_local)
-					playlist.push(new SpotifyTrack(item.track));
+					playlist.push(new SpotifyTrack().from(item.track));
 				else if(type == 'albums'){
 					item.album = {images};
-					playlist.push(new SpotifyTrack(item));
+					playlist.push(new SpotifyTrack().from(item));
 				}
 			}
 		}catch(e){
@@ -273,3 +277,6 @@ const api = (new class SpotifyAPI{
 });
 
 module.exports = api;
+module.exports.Track = SpotifyTrack;
+module.exports.Results = SpotifyResults;
+module.exports.Playlist = SpotifyPlaylist;
