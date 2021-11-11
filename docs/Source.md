@@ -92,3 +92,44 @@ const {Source: {Spotify}, Track: {TrackResults}} = require('yasha');
 
 Spotify.search(input: string): Promise<TrackResults>
 ```
+
+#### Errors
+
+```js
+class SourceError extends Error{
+	code: number;
+	message: string;
+	details: string; // more info for debugging, not shown to user
+}
+
+const {Source} = require('yasha');
+
+// all API and Source functions will throw SourceError and only SourceError
+const SourceError = Source.Error;
+```
+
+```js
+// access via SourceError.codes
+
+enum SourceErrorCode{
+	NETWORK_ERROR: 1, // see errors from fetch API
+	INVALID_RESPONSE: 2, // invalid response from API (most likely replied with non-json)
+	INTERNAL_ERROR: 3, // internal error
+	NOT_FOUND: 4, // track not found
+	UNPLAYABLE: 5 // track found but not playable
+};
+```
+
+```js
+try{
+	await Source.Youtube.get('dQw4w9WgXcQ'); // get by video id
+}catch(e){
+	if(e.code == SourceError.codes.NOT_FOUND){
+		console.log('Track not found');
+	}else if(e.code == SourceError.codes.UNPLAYABLE){
+		console.log('Track not playable');
+	}else{
+		console.error(e.message);
+	}
+}
+```
