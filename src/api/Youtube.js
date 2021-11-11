@@ -557,6 +557,50 @@ class YoutubeTrack extends Track{
 		super('Youtube');
 	}
 
+	from(video_details, author, streams){
+		return this.setOwner(
+			text(author.title),
+			TrackImage.from(author.thumbnail.thumbnails)
+		).setMetadata(
+			video_details.videoId,
+			video_details.title,
+			number(video_details.lengthSeconds),
+			TrackImage.from(video_details.thumbnail.thumbnails)
+		).setStreams(
+			streams
+		);
+	}
+
+	from_search(track){
+		var thumbnails;
+
+		if(track.channelThumbnailSupportedRenderers)
+			thumbnails = track.channelThumbnailSupportedRenderers.channelThumbnailWithLinkRenderer.thumbnail.thumbnails;
+		else if(track.channelThumbnail)
+			thumbnails = track.channelThumbnail.thumbnails;
+		return this.setOwner(
+			text(track.shortBylineText),
+			TrackImage.from(thumbnails)
+		).setMetadata(
+			track.videoId,
+			text(track.title),
+			track.lengthText ? parse_timestamp(track.lengthText.simpleText) : 0,
+			TrackImage.from(track.thumbnail.thumbnails),
+		);
+	}
+
+	from_playlist(track){
+		return this.setOwner(
+			text(track.shortBylineText),
+			null
+		).setMetadata(
+			track.videoId,
+			text(track.title),
+			number(track.lengthSeconds),
+			TrackImage.from(track.thumbnail.thumbnails)
+		).setPlayable(track.isPlayable ? true : false);
+	}
+
 	async getStreams(){
 		return await api.get_streams(this.id);
 	}
@@ -577,29 +621,9 @@ class YoutubeResults extends TrackResults{
 	}
 
 	extract_tracks(list){
-		for(var video of list){
-			if(!video.videoRenderer)
-				continue;
-			video = video.videoRenderer;
-
-			var thumbs;
-
-			if(video.channelThumbnailSupportedRenderers)
-				thumbs = video.channelThumbnailSupportedRenderers.channelThumbnailWithLinkRenderer.thumbnail.thumbnails;
-			else if(video.channelThumbnail)
-				thumbs = video.channelThumbnail.thumbnails;
-			this.push(new YoutubeTrack()
-				.setOwner(
-					text(video.shortBylineText),
-					TrackImage.from(thumbs)
-				).setMetadata(
-					video.videoId,
-					text(video.title),
-					video.lengthText ? parse_timestamp(video.lengthText.simpleText) : 0,
-					TrackImage.from(video.thumbnail.thumbnails),
-				)
-			);
-		}
+		for(var video of list)
+			if(video.videoRenderer)
+				this.push(new YoutubeTrack().from_search(video.videoRenderer));
 	}
 
 	set_continuation(cont){
@@ -622,21 +646,8 @@ class YoutubePlaylist extends TrackPlaylist{
 		for(var item of data){
 			if(item.continuationItemRenderer)
 				this.set_continuation(item.continuationItemRenderer.continuationEndpoint.continuationCommand.token);
-			else if(item.playlistVideoRenderer){
-				item = item.playlistVideoRenderer;
-
-				this.push(new YoutubeTrack()
-					.setOwner(
-						text(item.shortBylineText),
-						null
-					).setMetadata(
-						item.videoId,
-						text(item.title),
-						number(item.lengthSeconds),
-						TrackImage.from(item.thumbnail.thumbnails)
-					).setPlayable(item.isPlayable ? true : false)
-				);
-			}
+			else if(item.playlistVideoRenderer)
+				this.push(new YoutubeTrack().from_playlist(item.playlistVideoRenderer));
 		}
 	}
 
@@ -685,10 +696,10 @@ class YoutubeStreams extends TrackStreams{
 
 			if(scipher){
 				var cipher = {};
-				var cipherArr = scipher.split('&');
+				var cipher_contents = scipher.split('&');
 
-				for(var j = 0; j < cipherArr.length; j++){
-					var params = cipherArr[j].split('=');
+				for(var j = 0; j < cipher_contents.length; j++){
+					var params = cipher_contents[j].split('=');
 
 					cipher[params[0]] = decodeURIComponent(params[1]);
 				}
@@ -728,8 +739,10 @@ class YoutubeStreams extends TrackStreams{
 const api = new class YoutubeAPI{
 	constructor(){
 		this.player_js = null;
+		this.innertube_context = null;
+		this.innertube_key = null;
 		this.signature_timestamp = 0;
-		this.innertube = {};
+
 		this.cookie = '';
 		this.sapisid = '';
 
@@ -776,36 +789,50 @@ const api = new class YoutubeAPI{
 		}
 
 		this.signature_timestamp = state.STS;
-		this.innertube.key = state.INNERTUBE_API_KEY;
-		this.innertube.context = state.INNERTUBE_CONTEXT;
+		this.innertube_key = state.INNERTUBE_API_KEY;
+		this.innertube_context = state.INNERTUBE_CONTEXT;
 		this.player_js = state.PLAYER_JS_URL;
 
-		if(!this.signature_timestamp || !this.innertube.key || !this.innertube.context || !this.player_js)
+		if(!this.signature_timestamp || !this.innertube_key || !this.innertube_context || !this.player_js)
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing state fields'));
 		body = (await Request.get('https://www.youtube.com' + this.player_js)).body;
 		decoder.process(body);
 	}
 
+	async prefetch(now = Date.now()){
+		if(now - this.last_reload > this.reload_interval)
+			this.reload();
+		if(this.reloading)
+			await this.reloading;
+	}
+
 	async api_request(path, body = {}){
 		/* youtube v1 api */
-		await this.prefetch();
-
+		var time = Date.now();
 		var options = {};
-		var time = Math.floor(Date.now() / 1000);
 
-		body.context = this.innertube.context;
+		await this.prefetch(time);
+
+		body.context = this.innertube_context;
 		options.method = 'POST';
 
-		if(options.headers)
-			options.headers = {...options.headers, cookie: this.cookie};
-		else
-			options.headers = {cookie: this.cookie};
-		if(this.sapisid)
-			options.headers.authorization = 'SAPISIDHASH ' + time + '_' + crypto.createHash('sha1').update(time + ' ' + this.sapisid + ' https://www.youtube.com').digest('hex');
+		if(!options.headers)
+			options.headers = {};
 		options.headers.origin = 'https://www.youtube.com';
+
+		if(this.sapisid){
+			var hash;
+
+			time = Math.floor(time / 1000);
+			hash = crypto.createHash('sha1').update(time + ' ' + this.sapisid + ' https://www.youtube.com').digest('hex');
+
+			options.headers.authorization = 'SAPISIDHASH ' + time + '_' + hash;
+			options.headers.cookie = this.cookie;
+		}
+
 		options.body = JSON.stringify(body);
 
-		var {res} = await Request.getResponse('https://www.youtube.com/youtubei/v1/' + path + '?key=' + this.innertube.key, options);
+		var {res} = await Request.getResponse('https://www.youtube.com/youtubei/v1/' + path + '?key=' + this.innertube_key, options);
 		var body;
 
 		try{
@@ -831,12 +858,6 @@ const api = new class YoutubeAPI{
 
 	async player_request(id){
 		return await this.api_request('player', {videoId: id, playbackContext: {contentPlaybackContext: {signatureTimestamp: this.signature_timestamp}}})
-	}
-
-	async prefetch(){
-		if(Date.now() - this.last_reload > this.reload_interval)
-			this.reload();
-		if(this.reloading) await this.reloading;
 	}
 
 	async get(id){
@@ -871,29 +892,18 @@ const api = new class YoutubeAPI{
 		}
 
 		var response = responses[0];
-		var playerResponse = responses[1];
+		var player_response = responses[1];
 
-		if(!response || !playerResponse)
+		if(!response || !player_response)
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing data'));
-		check_playable(playerResponse.playabilityStatus);
+		check_playable(player_response.playabilityStatus);
 
-		var videoDetails = playerResponse.videoDetails;
+		var video_details = player_response.videoDetails;
 
 		try{
 			var author = get_property(response.contents.twoColumnWatchNextResults.results.results.contents, 'videoSecondaryInfoRenderer').owner.videoOwnerRenderer;
 
-			return new YoutubeTrack()
-				.setOwner(
-					text(author.title),
-					TrackImage.from(author.thumbnail.thumbnails)
-				).setMetadata(
-					videoDetails.videoId,
-					videoDetails.title,
-					number(videoDetails.lengthSeconds),
-					TrackImage.from(videoDetails.thumbnail.thumbnails)
-				).setStreams(
-					new YoutubeStreams(start, playerResponse)
-				);
+			return new YoutubeTrack().from(video_details, author, new YoutubeStreams(start, player_response));
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
@@ -901,13 +911,13 @@ const api = new class YoutubeAPI{
 
 	async get_streams(id){
 		var start;
-		var playerResponse;
+		var player_response;
 
 		for(var tries = 0; tries < 2; tries++){
 			start = Date.now();
 
 			try{
-				playerResponse = await this.player_request(id);
+				player_response = await this.player_request(id);
 			}catch(e){
 				if(tries)
 					throw e;
@@ -919,12 +929,12 @@ const api = new class YoutubeAPI{
 			break;
 		}
 
-		if(!playerResponse)
+		if(!player_response)
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing data'));
-		check_playable(playerResponse.playabilityStatus);
+		check_playable(player_response.playabilityStatus);
 
 		try{
-			return new YoutubeStreams(start, playerResponse);
+			return new YoutubeStreams(start, player_response);
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
@@ -1037,3 +1047,6 @@ const api = new class YoutubeAPI{
 }
 
 module.exports = api;
+module.exports.Track = YoutubeTrack;
+module.exports.Results = YoutubeResults;
+module.exports.Playlist = YoutubePlaylist;

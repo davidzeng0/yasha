@@ -1,7 +1,13 @@
+const SourceError = require('./SourceError');
+
 class APISource{
 	constructor(api){
 		this.name = api;
 		this.api = require('./api/' + api);
+
+		this.Track = this.api.Track;
+		this.Results = this.api.Results;
+		this.Playlist = this.api.Playlist;
 	}
 
 	match(content){
@@ -20,6 +26,14 @@ class APISource{
 		return null;
 	}
 
+	async get(id){
+		return this.api.get(id);
+	}
+
+	async getStreams(id){
+		return this.api.get_streams(id);
+	}
+
 	async search(query){
 		return null;
 	}
@@ -29,7 +43,7 @@ class APISource{
 	}
 
 	async playlist(id, length){
-		return null;
+		return this.api.playlist(id, length);
 	}
 }
 
@@ -111,10 +125,6 @@ const youtube = new class Youtube extends APISource{
 		return this.api.playlist_once(id, continuation);
 	}
 
-	async playlist(id, length){
-		return this.api.playlist(id, length);
-	}
-
 	setCookie(cookie){
 		this.api.set_cookie(cookie);
 	}
@@ -149,10 +159,6 @@ const soundcloud = new class Soundcloud extends APISource{
 
 	async playlistOnce(id, offset, length){
 		return this.api.playlist_once(id, offset, length);
-	}
-
-	async playlist(id, length){
-		return this.api.playlist(id, length);
 	}
 }
 
@@ -205,10 +211,6 @@ const spotify = new class Spotify extends APISource{
 		return this.api.playlist_once(id, offset, length);
 	}
 
-	async playlist(id, length){
-		return this.api.playlist(id, length);
-	}
-
 	async albumOnce(id, offset, length){
 		return this.api.album_once(id, offset, length);
 	}
@@ -233,6 +235,7 @@ class Source{
 	}
 };
 
+Source.Error = SourceError;
 Source.Youtube = youtube;
 Source.Soundcloud = soundcloud;
 Source.Spotify = spotify;

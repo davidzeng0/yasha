@@ -5,12 +5,14 @@ const util = require('./util');
 const {Track, TrackImage, TrackResults, TrackPlaylist, TrackStream, TrackStreams} = require('../Track');
 
 class SoundcloudTrack extends Track{
-	constructor(track, streams){
+	constructor(){
 		super('Soundcloud');
+	}
 
+	from(track, streams){
 		this.permalink_url = track.permalink_url;
 
-		this.setOwner(
+		return this.setOwner(
 			track.user.username,
 			[{url: track.user.avatar_url, width: 0, height: 0}]
 		).setMetadata(
@@ -90,11 +92,10 @@ class SoundcloudResults extends TrackResults{
 }
 
 class SoundcloudPlaylist extends TrackPlaylist{
-	constructor(list){
-		super();
-
+	from(list){
 		if(list)
 			this.setMetadata(list.title, list.description);
+		return this;
 	}
 
 	set_continuation(id, start){
@@ -225,8 +226,10 @@ var api = new class SoundcloudAPI{
 
 	async resolve_playlist(list, offset = 0, limit){
 		var unresolved_index = -1;
-		var tracks = new SoundcloudPlaylist(offset == 0 ? list : null);
+		var tracks = new SoundcloudPlaylist().from(offset == 0 ? list : null);
 
+		if(offset >= list.tracks.length)
+			return null;
 		for(var i = offset; i < list.tracks.length; i++){
 			if(list.tracks[i].streamable === undefined){
 				unresolved_index = i;
@@ -235,7 +238,7 @@ var api = new class SoundcloudAPI{
 			}
 
 			try{
-				tracks.push(new SoundcloudTrack(list.tracks[i]));
+				tracks.push(new SoundcloudTrack().from(list.tracks[i]));
 			}catch(e){
 				throw new SourceError.INTERNAL_ERROR(null, e);
 			}
@@ -253,7 +256,7 @@ var api = new class SoundcloudAPI{
 				break;
 			try{
 				for(var track of body)
-					tracks.push(new SoundcloudTrack(track));
+					tracks.push(new SoundcloudTrack().from(track));
 			}catch(e){
 				throw new SourceError.INTERNAL_ERROR(null, e);
 			}
@@ -273,7 +276,7 @@ var api = new class SoundcloudAPI{
 			try{
 				var streams = await this.resolve_streams(body);
 
-				return new SoundcloudTrack(body, streams);
+				return new SoundcloudTrack().from(body, streams);
 			}catch(e){
 				throw new SourceError.INTERNAL_ERROR(null, e);
 			}
@@ -321,7 +324,7 @@ var api = new class SoundcloudAPI{
 
 		try{
 			streams = await this.resolve_streams(body);
-			result = new SoundcloudTrack(body, streams);
+			result = new SoundcloudTrack().from(body, streams);
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
@@ -346,7 +349,7 @@ var api = new class SoundcloudAPI{
 			var results = new SoundcloudResults();
 
 			for(var item of body.collection)
-				results.push(new SoundcloudTrack(item));
+				results.push(new SoundcloudTrack().from(item));
 			if(body.collection.length)
 				results.set_continuation(query, offset + limit);
 			return results;
@@ -369,3 +372,6 @@ var api = new class SoundcloudAPI{
 };
 
 module.exports = api;
+module.exports.Track = SoundcloudTrack;
+module.exports.Results = SoundcloudResults;
+module.exports.Playlist = SoundcloudPlaylist;
