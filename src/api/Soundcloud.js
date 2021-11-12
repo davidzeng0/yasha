@@ -93,14 +93,21 @@ class SoundcloudResults extends TrackResults{
 
 class SoundcloudPlaylist extends TrackPlaylist{
 	from(list){
-		if(list)
+		if(list){
+			this.permalink_url = list.permalink_url;
 			this.setMetadata(list.title, list.description);
+		}
+
 		return this;
 	}
 
 	set_continuation(id, start){
 		this.id = id;
 		this.start = start;
+	}
+
+	get url(){
+		return this.permalink_url;
 	}
 
 	async next(){
