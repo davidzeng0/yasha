@@ -66,7 +66,7 @@ class Track{
 	}
 
 	setOwner(name, icons){
-		this.owner_name = name;
+		this.author = name;
 		this.icons = icons;
 
 		return this;

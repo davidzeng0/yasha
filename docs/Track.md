@@ -13,7 +13,7 @@ class Track{
 	platform: string; // Youtube, Spotify, Soundcloud
 	playable: boolean;
 
-	owner_name: string | null; // Artist name
+	author: string | null; // Artist name
 	icons: TrackImage[] | null; // Artist icons
 
 	id: string | null; // Track id
