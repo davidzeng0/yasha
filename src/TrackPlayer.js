@@ -313,6 +313,13 @@ class TrackPlayer extends EventEmitter{
 
 			this.send(silence, 960, true);
 
+			if(this.external_encrypt && this.secretbox_ready()){
+				/* save modified secretbox state to the player */
+				var data = this.get_connection_data();
+
+				this.player.ffplayer.updateSecretBox(data.sequence, data.timestamp, data.nonce);
+			}
+
 			if(!this.silence_frames_left){
 				clearInterval(this.silence_frames_interval);
 
@@ -328,13 +335,6 @@ class TrackPlayer extends EventEmitter{
 			clearInterval(this.silence_frames_interval);
 
 			this.silence_frames_interval = null;
-
-			if(this.external_encrypt && this.secretbox_ready()){
-				/* save modified secretbox state to the player */
-				var data = this.get_connection_data();
-
-				this.player.ffplayer.updateSecretBox(data.sequence, data.timestamp, data.nonce);
-			}
 		}
 
 		this.silence_frames_needed = true;

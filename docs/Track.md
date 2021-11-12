@@ -43,6 +43,11 @@ class TrackPlaylist extends TrackResults{
 	description: string; // playlist description
 	first_track: Track; // if a playlist and track are queried at the same time, this is the track
 
+	get url(): string | null; // url to playlist
+
+	// metadata like title, description, and url are only guaranteed to be available if it's first fetch from api
+	// aka offset = 0 or continuation = null
+
 	async next(): Promise<TrackPlaylist | null>; // get next page of results
 }
 

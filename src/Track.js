@@ -129,6 +129,10 @@ class TrackPlaylist extends TrackResults{
 	async next(){
 		return null;
 	}
+
+	get url(){
+		return null;
+	}
 }
 
 class TrackImage{

@@ -642,7 +642,9 @@ class YoutubePlaylist extends TrackPlaylist{
 		this.continuation = cont;
 	}
 
-	process(data){
+	process(id, data){
+		this.id = id;
+
 		for(var item of data){
 			if(item.continuationItemRenderer)
 				this.set_continuation(item.continuationItemRenderer.continuationEndpoint.continuationCommand.token);
@@ -655,6 +657,10 @@ class YoutubePlaylist extends TrackPlaylist{
 		if(this.continuation)
 			return await api.playlist_once(null, this.continuation);
 		return null;
+	}
+
+	get url(){
+		return 'https://www.youtube.com/playlist?list=' + this.id;
 	}
 }
 
@@ -972,7 +978,7 @@ const api = new class YoutubeAPI{
 		}
 
 		try{
-			results.process(data);
+			results.process(id, data);
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}

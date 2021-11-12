@@ -22,7 +22,9 @@ console.log(playlist instanceof TrackPlaylist); // true
 var result = await Source.resolve(input);
 
 if(result instanceof TrackPlaylist){
-	console.log(`Found playlist ${result.title}`);
+	// metadata like title, description, and url are only guaranteed to be available if it's first fetch from api
+	// aka offset = 0 or continuation = null or resolved from Source
+	console.log(`Found playlist ${result.title} ${result.url}`);
 
 	var first_track = result.first_track;
 	var list: Track[] = [];

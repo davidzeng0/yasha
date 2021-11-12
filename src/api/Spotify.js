@@ -50,6 +50,12 @@ class SpotifyPlaylist extends TrackPlaylist{
 			return await api.list_once(this.type, this.id, this.start);
 		return null;
 	}
+
+	get url(){
+		if(this.type == 'playlists')
+			return 'https://open.spotify.com/playlist/' + this.id;
+		return 'https://open.spotify.com/album/' + this.id;
+	}
 }
 
 const api = (new class SpotifyAPI{
