@@ -436,7 +436,7 @@ var decoder = new class YoutubeDecoder{
 					case 2:
 						array.push({type: 'variable', value: result[i]});
 
-						if(result[i] != 'a' && result[i] != 'b' && result[i] != 'c')
+						if(result[i] != 'a' && result[i] != 'b' && result[i] != 'c' && result[i] != 'null')
 							throw new Error('Unknown variable: ' + result[i]);
 						break;
 					case 4:
@@ -602,10 +602,10 @@ function parse_timestamp(str){
 	var seconds = 0;
 
 	if(tokens.length > scale.length)
-		return NaN;
+		return -1;
 	for(var i = tokens.length - 1; i >= 0; i--){
 		if(!Number.isInteger(tokens[i]))
-			return NaN;
+			return -1;
 		seconds += tokens[i] * scale[Math.min(3, tokens.length - i - 1)];
 	}
 
@@ -644,7 +644,7 @@ class YoutubeTrack extends Track{
 		).setMetadata(
 			track.videoId,
 			text(track.title),
-			track.lengthText ? parse_timestamp(track.lengthText.simpleText) : 0,
+			track.lengthText ? parse_timestamp(track.lengthText.simpleText) : -1,
 			TrackImage.from(track.thumbnail.thumbnails),
 		);
 	}
@@ -842,9 +842,9 @@ const api = new class YoutubeAPI{
 	}
 
 	async load(){
-		var {body} = await Request.get('https://www.youtube.com/', {headers: {cookie: this.cookie}});
+		var {body} = await Request.get('https://www.youtube.com/');
 
-		var state = /ytcfg\.set\((\{[\s\S]+?\})\);/.exec(body);
+		var state = /ytcfg\.set\((\{[^]+?\})\);/.exec(body);
 
 		if(!state)
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Could not find state object'));
@@ -872,7 +872,7 @@ const api = new class YoutubeAPI{
 			await this.reloading;
 	}
 
-	async api_request(path, body = {}){
+	async api_request(path, body = {}, query = '', origin = 'www'){
 		/* youtube v1 api */
 		var time = Date.now();
 		var options = {};
@@ -884,13 +884,13 @@ const api = new class YoutubeAPI{
 
 		if(!options.headers)
 			options.headers = {};
-		options.headers.origin = 'https://www.youtube.com';
+		options.headers.origin = `https://${origin}.youtube.com`;
 
 		if(this.sapisid){
 			var hash;
 
 			time = Math.floor(time / 1000);
-			hash = crypto.createHash('sha1').update(time + ' ' + this.sapisid + ' https://www.youtube.com').digest('hex');
+			hash = crypto.createHash('sha1').update(`${time} ${this.sapisid} https://www.youtube.com`).digest('hex');
 
 			options.headers.authorization = 'SAPISIDHASH ' + time + '_' + hash;
 			options.headers.cookie = this.cookie;
@@ -898,7 +898,7 @@ const api = new class YoutubeAPI{
 
 		options.body = JSON.stringify(body);
 
-		var {res} = await Request.getResponse('https://www.youtube.com/youtubei/v1/' + path + '?key=' + this.innertube_key, options);
+		var {res} = await Request.getResponse(`https://${origin}.youtube.com/youtubei/v1/${path}?key=${this.innertube_key}${query}`, options);
 		var body;
 
 		try{
@@ -1112,7 +1112,167 @@ const api = new class YoutubeAPI{
 	}
 }
 
+class YoutubeMusicTrack extends YoutubeTrack{
+	constructor(){
+		super('Youtube');
+	}
+
+	from_search(track){
+		var title = track.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text;
+		var metadata = track.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text;
+
+		var owner = metadata.runs[0];
+		var duration = metadata.runs.length > 1 ? parse_timestamp(metadata.runs[metadata.runs.length - 1].text) : -1;
+
+		return this.setOwner(
+			owner.text,
+			null
+		).setMetadata(
+			track.playlistItemData.videoId,
+			text(title),
+			duration,
+			TrackImage.from(track.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails),
+		);
+	}
+}
+
+class YoutubeMusicResults extends TrackResults{
+	process(body){
+		this.extract_tracks(body.contents);
+
+		if(body.continuations && body.continuations.length)
+			this.set_continuation(body.continuations[0].nextContinuationData.continuation);
+	}
+
+	extract_tracks(list){
+		for(var video of list)
+			if(video.musicResponsiveListItemRenderer)
+				this.push(new YoutubeMusicTrack().from_search(video.musicResponsiveListItemRenderer));
+	}
+
+	set_continuation(cont){
+		this.continuation = cont;
+	}
+
+	async next(){
+		if(this.continuation)
+			return await music.search(null, this.continuation);
+		return null;
+	}
+}
+
+var music = new class YoutubeMusic{
+	constructor(){
+		this.innertube_context = null;
+		this.innertube_key = null;
+
+		this.reloading = null;
+		this.needs_reload = false;
+		this.last_reload = 0;
+		this.reload_interval = 24 * 60 * 60 * 1000;
+	}
+
+	async reload(force){
+		/* has our playerjs expired? */
+		if(this.reloading){
+			if(force)
+				this.needs_reload = true;
+			return;
+		}
+
+		do{
+			this.needs_reload = false;
+			this.last_reload = Date.now();
+			this.reloading = this.load();
+
+			try{
+				await this.reloading;
+			}catch(e){
+				this.last_reload = 0;
+			}
+
+			this.reloading = null;
+		}while(this.needs_reload);
+	}
+
+	async load(){
+		var {body} = await Request.get('https://music.youtube.com/', {headers: {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36'}});
+
+		var state = /ytcfg\.set\((\{[^]+?\})\);/.exec(body);
+
+		if(!state)
+			throw new SourceError.INTERNAL_ERROR(null, new Error('Could not find state object'));
+		try{
+			state = JSON.parse(state[1]);
+		}catch(e){
+			throw new SourceError.INTERNAL_ERROR(null, new Error('Could not parse state object'));
+		}
+
+		this.innertube_key = state.INNERTUBE_API_KEY;
+		this.innertube_context = state.INNERTUBE_CONTEXT;
+
+		if(!this.innertube_key || !this.innertube_context)
+			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing state fields'));
+	}
+
+	get cookie(){
+		return api.cookie;
+	}
+
+	get sapisid(){
+		return api.sapisid;
+	}
+
+	async prefetch(now = Date.now()){
+		if(now - this.last_reload > this.reload_interval)
+			this.reload();
+		if(this.reloading)
+			await this.reloading;
+	}
+
+	async api_request(path, body, query){
+		return api.api_request.call(this, path, body, query, 'music');
+	}
+
+	async search(search, continuation){
+		var query, body;
+
+		if(continuation)
+			query = '&continuation=' + continuation + '&type=next';
+		else
+			body = {query: search, params: 'EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D'};
+		body = await this.api_request('search', body, query);
+
+		if(continuation){
+			if(!body.continuationContents)
+				throw new SourceError.NOT_FOUND('Search continuation token not found');
+			try{
+				body = body.continuationContents.musicShelfContinuation;
+			}catch(e){
+				throw new SourceError.INTERNAL_ERROR(null, e);
+			}
+		}else{
+			try{
+				body = body.contents.tabbedSearchResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[0].musicShelfRenderer;
+			}catch(e){
+				throw new SourceError.INTERNAL_ERROR(null, e);
+			}
+		}
+
+		var results = new YoutubeMusicResults();
+
+		try{
+			results.process(body);
+		}catch(e){
+			throw new SourceError.INTERNAL_ERROR(null, e);
+		}
+
+		return results;
+	}
+}
+
 module.exports = api;
+module.exports.Music = music;
 module.exports.Track = YoutubeTrack;
 module.exports.Results = YoutubeResults;
 module.exports.Playlist = YoutubePlaylist;
