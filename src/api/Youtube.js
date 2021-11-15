@@ -120,7 +120,7 @@ var n_functions = [
 		process: function(content){
 			var switch_content = new RegExp('function\\(d,e\\)\\{for\\(var f=64,h=\\[\\];\\+\\+f-h\\.length-32;\\)\\{switch\\(f\\)\\{([^]*?)\\}h\\.push\\(String\\.fromCharCode\\(f\\)\\)\\}d\\.forEach\\(function\\(l,m,n\\)\\{this\\.push\\(n\\[m\\]=h\\[\\(h\\.indexOf\\(l\\)-h\\.indexOf\\(this\\[m\\]\\)\\+m-32\\+f--\\)%h\\.length\\]\\)\\},e\\.split\\(' + js_empty_string + '\\)\\)\\}').exec(content);
 
-			return process_switch_content(switch_content && switch_content[1], true);
+			return process_switch_content(switch_content && switch_content[1], true, false);
 		}
 	},
 	{
@@ -128,7 +128,15 @@ var n_functions = [
 		process: function(content){
 			var switch_content = new RegExp('function\\(d,e\\)\\{for\\(var f=64,h=\\[\\];\\+\\+f-h\\.length-32;\\)switch\\(f\\)\\{([^]*?)\\}d\\.forEach\\(function\\(l,m,n\\)\\{this\\.push\\(n\\[m\\]=h\\[\\(h\\.indexOf\\(l\\)-h\\.indexOf\\(this\\[m\\]\\)\\+m-32\\+f--\\)%h\\.length\\]\\)\\},e\\.split\\(' + js_empty_string + '\\)\\)\\}').exec(content);
 
-			return process_switch_content(switch_content && switch_content[1], false);
+			return process_switch_content(switch_content && switch_content[1], false, false);
+		}
+	},
+	{
+		content: 'function\\(\\)\\{for\\(var d=64,e=\\[\\];\\+\\+d-e\\.length-32;\\)\\{switch\\(d\\)\\{[^]*?\\}e\\.push\\(String\\.fromCharCode\\(d\\)\\)\\}return e\\}',
+		process: function(content){
+			var switch_content = new RegExp('function\\(\\)\\{for\\(var d=64,e=\\[\\];\\+\\+d-e\\.length-32;\\)\\{switch\\(d\\)\\{([^]*?)\\}e\\.push\\(String\\.fromCharCode\\(d\\)\\)\\}return e\\}').exec(content);
+
+			return process_switch_content(switch_content && switch_content[1], true, true);
 		}
 	},
 	{
@@ -139,6 +147,18 @@ var n_functions = [
 
 				while(e--)
 					d.unshift(d.pop());
+			}
+		}
+	},
+	{
+		content: 'function\\(d,e,f\\)\\{var h=f\\.length;d\\.forEach\\(function\\(l,m,n\\)\\{this\\.push\\(n\\[m\\]=f\\[\\(f\\.indexOf\\(l\\)-f\\.indexOf\\(this\\[m\\]\\)\\+m\\+h--\\)%f\\.length\\]\\)\\},e\\.split\\(' + js_empty_string + '\\)\\)\\}',
+		process: function(content){
+			return function(d, e, f){
+				var h = f.length;
+
+				d.forEach(function(l, m, n){
+					this.push(n[m] = f[(f.indexOf(l) - f.indexOf(this[m]) + m + h--) % f.length]);
+				}, e.split(''));
 			}
 		}
 	}
@@ -191,6 +211,33 @@ var switch_code = [
 		}
 	},
 	{
+		content: 'd-=\\d+?;|d+=\\d+?;|d=\\d+;?',
+		process: function(content){
+			content = /d(-=|\+=|=)(\d+);?/.exec(content);
+
+			return {type: 'code', value: [content[1], parseInt(content[2])]};
+		},
+
+		do: function(f, h, data){
+			switch(data[0]){
+				case '-=':
+					f -= data[1];
+
+					break;
+				case '+=':
+					f += data[1];
+
+					break;
+				case '=':
+					f = data[1];
+
+					break;
+			}
+
+			return f;
+		}
+	},
+	{
 		content: 'h\\.push\\(String\\.fromCharCode\\(f\\)\\);?',
 		process: function(content){
 			return {type: 'code'};
@@ -218,7 +265,7 @@ var switch_code = [
 
 var switch_code_regex = switch_code.map((c => '(' + c.content + ')')).join('|');
 
-function process_switch_content(switch_content, def){
+function process_switch_content(switch_content, def, array){
 	var content = [];
 	var default_index = -1;
 
@@ -228,16 +275,16 @@ function process_switch_content(switch_content, def){
 
 		while(result = content_regex.exec(switch_content)){
 			for(var i = 1; i < result.length; i++){
-				if(result[i] !== undefined){
-					var c = switch_code[i - 1].process(result[i]);
+				if(result[i] === undefined)
+					continue;
+				var c = switch_code[i - 1].process(result[i]);
 
-					c.index = i - 1;
-					content.push(c);
+				c.index = i - 1;
+				content.push(c);
 
-					if(c.type == 'default')
-						default_index = content.length;
-					break;
-				}
+				if(c.type == 'default')
+					default_index = content.length;
+				break;
 			}
 		}
 	}
@@ -290,6 +337,10 @@ function process_switch_content(switch_content, def){
 		}
 	}
 
+	if(array)
+		return function(){
+			return h;
+		}
 	return function(d, e){
 		var k = f;
 
@@ -311,7 +362,12 @@ var decoder = new class YoutubeDecoder{
 		this.n_decode = {};
 
 		this.get_signature_decode(body);
-		this.get_n_decode(body);
+
+		try{
+			this.get_n_decode(body);
+		}catch(e){
+			this.n_decode.error = e;
+		}
 	}
 
 	get_signature_decode(body){
@@ -368,27 +424,29 @@ var decoder = new class YoutubeDecoder{
 
 		while(result = array_elements_regex.exec(array_contents)){
 			for(var i = 1; i < result.length; i++){
-				if(result[i] !== undefined){
-					if(i <= n_functions.length)
-						array.push({type: 'function', value: n_functions[i - 1].process(result[i])});
-					else switch(i - n_functions.length){
-						case 1:
-							array.push({type: 'number', value: parseInt(result[i])});
+				if(result[i] === undefined)
+					continue;
+				if(i <= n_functions.length)
+					array.push({type: 'function', value: n_functions[i - 1].process(result[i])});
+				else switch(i - n_functions.length){
+					case 1:
+						array.push({type: 'number', value: parseInt(result[i])});
 
-							break;
-						case 2:
-							array.push({type: 'variable', value: result[i]});
+						break;
+					case 2:
+						array.push({type: 'variable', value: result[i]});
 
-							break;
-						case 4:
-						case 5:
-							array.push({type: 'string', value: result[i]});
+						if(result[i] != 'a' && result[i] != 'b' && result[i] != 'c')
+							throw new Error('Unknown variable: ' + result[i]);
+						break;
+					case 4:
+					case 5:
+						array.push({type: 'string', value: result[i]});
 
-							break;
-					}
-
-					break;
+						break;
 				}
+
+				break;
 			}
 		}
 
@@ -400,9 +458,9 @@ var decoder = new class YoutubeDecoder{
 			var index = parseInt(result[1]),
 				args = result[2].split(',');
 			args = args.map((a) => {
-				var match = /c\[(\d+)\]/.exec(a);
+				var match = /c\[(\d+)\](\()?/.exec(a);
 
-				return parseInt(match[1]);
+				return {index: parseInt(match[1]), call: match[2] ? true : false};
 			});
 
 			actions_array.push({index: index, args: args});
@@ -450,6 +508,8 @@ var decoder = new class YoutubeDecoder{
 	}
 
 	decode_n(a){
+		if(this.n_decode.error)
+			throw this.n_decode.error;
 		var b = a.split(''),
 			c = new Array(this.n_decode.array.length);
 		for(var i = 0; i < c.length; i++){
@@ -479,7 +539,7 @@ var decoder = new class YoutubeDecoder{
 
 		for(var {index, args} of this.n_decode.actions_array){
 			try{
-				c[index].apply(null, args.map(a => c[a]));
+				c[index].apply(null, args.map(({index, call}) => call ? c[index]() : c[index]));
 			}catch(e){
 				return this.n_decode.except + a;
 			}
