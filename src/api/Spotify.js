@@ -146,15 +146,12 @@ const api = (new class SpotifyAPI{
 	}
 
 	async youtube_search(track){
-		var query = track.author + ' - ' + track.title;
+		var query = track.author + ' ' + track.title;
 		var results = await Youtube.Music.search(query);
 
-		var author_match = [track.author, track.author + ' - Topic'];
-
 		for(var result of results){
-			for(var author of author_match)
-				if(results.author == author)
-					return result;
+			if(results.author == track.author)
+				return result;
 			if(result.title == track.title)
 				return result;
 		}
