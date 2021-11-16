@@ -147,7 +147,7 @@ class MyTrack{
 		this.platform = platform;
 	}
 
-	getStreams(){
+	getStreams(): Promise<TrackStreams>{
 		// see Track.md
 
 		switch(this.platform){
@@ -172,10 +172,28 @@ class MyYoutubeTrack extends Source.Youtube.Track{
 		super(id);
 	}
 
-	getStreams(){
+	getStreams(): Promise<TrackStreams>{
 		// fields required are not documented and this method isn't supported
 		// see api/[source].js for what fields are required for getStreams()
 
 		return super.getStreams();
 	}
 }
+```
+
+Playing
+
+```js
+// TrackPlayer only cares about track.streams and track.getStreams()
+
+class PlayableTrack{ // playable by TrackPlayer
+	streams: TrackStreams = null;
+
+	getStreams(): Promise<TrackStreams>{
+		// ...
+	}
+}
+
+TrackPlayer.play(new MyYoutubeTrack(...));
+TrackPlayer.play(new MyTrack(...));
+```
