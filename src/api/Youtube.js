@@ -140,6 +140,14 @@ var n_functions = [
 		}
 	},
 	{
+		content: 'function\\(\\)\\{for\\(var d=64,e=\\[\\];\\+\\+d-e\\.length-32;\\)switch\\(d\\)\\{[^]*?\\}return e\\}',
+		process: function(content){
+			var switch_content = new RegExp('function\\(\\)\\{for\\(var d=64,e=\\[\\];\\+\\+d-e\\.length-32;\\)switch\\(d\\)\\{([^]*?)\\}return e\\}').exec(content);
+
+			return process_switch_content(switch_content && switch_content[1], false, true);
+		}
+	},
+	{
 		content: 'function\\(d,e\\)\\{for\\(e=\\(e%d\\.length\\+d\\.length\\)%d\\.length;e--;\\)d\\.unshift\\(d\\.pop\\(\\)\\)\\}',
 		process: function(content){
 			return function(d, e){
@@ -238,7 +246,7 @@ var switch_code = [
 		}
 	},
 	{
-		content: 'h\\.push\\(String\\.fromCharCode\\(f\\)\\);?',
+		content: 'h\\.push\\(String\\.fromCharCode\\(f\\)\\);?|e\\.push\\(String\\.fromCharCode\\(d\\)\\);?',
 		process: function(content){
 			return {type: 'code'};
 		},
