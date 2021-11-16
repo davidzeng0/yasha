@@ -66,6 +66,9 @@ Resolve (static)
 ```js
 const {Track: {Track, TrackPlaylist}} = require('yasha');
 
+// attempts to resolve a url to a track or playlist
+// returns null if given text does not match any urls
+// for string searches use Source.[Platform].search()
 Source.resolve(string: string): Promise<Track | TrackPlaylist | null>
 ```
 
@@ -135,3 +138,44 @@ try{
 	}
 }
 ```
+
+### Custom Tracks
+```js
+class MyTrack{
+	constructor(id, platform){
+		this.id = id;
+		this.platform = platform;
+	}
+
+	getStreams(){
+		// see Track.md
+
+		switch(this.platform){
+			case 'youtube':
+				return Source.Youtube.getStreams(this.id);
+			case 'soundcloud':
+				return Source.Soundcloud.getStreams(this.id);
+			case 'spotify':
+				return Source.Spotify.getStreams(this.id);
+			default:
+				// must not return null
+				throw new Error('Unknown platform');
+				// error will be emitted from TrackPlayer.on('error')
+		}
+	}
+}
+```
+
+```js
+class MyYoutubeTrack extends Source.Youtube.Track{
+	constructor(id){
+		super(id);
+	}
+
+	getStreams(){
+		// fields required are not documented and this method isn't supported
+		// see api/[source].js for what fields are required for getStreams()
+
+		return super.getStreams();
+	}
+}
