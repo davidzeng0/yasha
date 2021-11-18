@@ -22,6 +22,11 @@ const errors = {
 	UNPLAYABLE: {
 		message: 'Unplayable',
 		code: 5
+	},
+
+	NOT_A_TRACK: {
+		message: 'Not a track',
+		code: 6
 	}
 };
 
