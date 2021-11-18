@@ -121,7 +121,8 @@ enum SourceErrorCode{
 	INVALID_RESPONSE: 2, // invalid response from API (most likely replied with non-json)
 	INTERNAL_ERROR: 3, // internal error
 	NOT_FOUND: 4, // track not found
-	UNPLAYABLE: 5 // track found but not playable
+	UNPLAYABLE: 5 // track found but not playable,
+	NOT_A_TRACK: 6 // url does not lead to a track
 };
 ```
 
