@@ -152,7 +152,13 @@ const soundcloud = new class Soundcloud extends APISource{
 	}
 
 	async resolve(match){
-		return await this.api.resolve(match);
+		try{
+			return await this.api.resolve(match);
+		}catch(e){
+			if(e.code == SourceError.code.NOT_A_TRACK)
+				return null;
+			throw e;
+		}
 	}
 
 	async search(query, offset, length){

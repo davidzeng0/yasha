@@ -290,7 +290,7 @@ var api = new class SoundcloudAPI{
 		}else if(body.kind == 'playlist'){
 			return this.resolve_playlist(body, 0, 50);
 		}else{
-			throw new SourceError.INTERNAL_ERROR(null, new Error('Unknown kind ' + body.kind));
+			throw new SourceError.NOT_A_TRACK(null, new Error('Unsupported kind: ' + body.kind));
 		}
 	}
 

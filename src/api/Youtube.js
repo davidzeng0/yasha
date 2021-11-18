@@ -517,7 +517,7 @@ var decoder = new class YoutubeDecoder{
 
 	decode_n(a){
 		if(this.n_decode.error)
-			throw this.n_decode.error;
+			return a;
 		var b = a.split(''),
 			c = new Array(this.n_decode.array.length);
 		for(var i = 0; i < c.length; i++){

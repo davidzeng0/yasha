@@ -299,7 +299,7 @@ class TrackPlayer extends EventEmitter{
 			return;
 		this.silence_frames_needed = false;
 
-		if(this.external_encrypt && this.secretbox_ready()){
+		if(this.player && this.external_encrypt && this.secretbox_ready()){
 			/* restore modified secretbox state from the player */
 			var box = this.player.ffplayer.getSecretBox(),
 				data = this.get_connection_data();
@@ -313,7 +313,7 @@ class TrackPlayer extends EventEmitter{
 
 			this.send(silence, 960, true);
 
-			if(this.external_encrypt && this.secretbox_ready()){
+			if(this.player && this.external_encrypt && this.secretbox_ready()){
 				/* save modified secretbox state to the player */
 				var data = this.get_connection_data();
 
