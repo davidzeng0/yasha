@@ -167,10 +167,25 @@ const api = (new class SpotifyAPI{
 	}
 
 	async youtube_lookup(track){
+		if(track.youtube_id){
+			try{
+				return await Youtube.get_streams(track.youtube_id);
+			}catch(e){
+
+			}
+		}
+
 		var result = await this.youtube_search(track);
 
-		if(result)
-			return await result.getStreams();
+		if(result){
+			var id = result.id;
+
+			result = await result.getStreams();
+			track.youtube_id = id;
+
+			return result;
+		}
+
 		throw new SourceError.UNPLAYABLE('Could not find streams for this track');
 	}
 
