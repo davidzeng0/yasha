@@ -1261,7 +1261,7 @@ var music = new class YoutubeMusic{
 			}
 		}else{
 			try{
-				body = body.contents.tabbedSearchResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[0].musicShelfRenderer;
+				body = get_property(body.contents.tabbedSearchResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents, 'musicShelfRenderer');
 			}catch(e){
 				throw new SourceError.INTERNAL_ERROR(null, e);
 			}
