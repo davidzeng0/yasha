@@ -154,7 +154,10 @@ class TrackPlayer extends EventEmitter{
 					break;
 			}
 
+			var data = this.get_connection_data();
+
 			this.player.ffplayer.setSecretBox(connection_data.secretKey, mode, connection_data.ssrc);
+			this.player.ffplayer.updateSecretBox(data.sequence, data.timestamp, data.nonce);
 
 			return;
 		}
