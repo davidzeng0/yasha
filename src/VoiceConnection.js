@@ -14,10 +14,16 @@ class VoiceConnection extends voice.VoiceConnection{
 		this.connect_timeout = null;
 		this.connected = false;
 
-		this._state.status = VoiceConnectionStatus.Ready;
-		super.rejoin();
-		this._state.status = VoiceConnectionStatus.Signalling;
 		this.await_connection();
+		this._state.status = VoiceConnectionStatus.Ready;
+
+		if(super.rejoin())
+			this._state.status = VoiceConnectionStatus.Signalling;
+	}
+
+	rejoin(channelId){
+		if(this.joinConfig.channelId != channelId)
+			super.rejoin({channelId});
 	}
 
 	disconnect_reason(reason){
@@ -141,6 +147,8 @@ class VoiceConnection extends voice.VoiceConnection{
 
 		if(!connection)
 			connection = new VoiceConnection(channel, options);
+		else
+			connection.rejoin(channel.id);
 		if(connection.ready())
 			return connection;
 		connection.await_connection();
