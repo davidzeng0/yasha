@@ -10,6 +10,7 @@ class SpotifyTrack extends Track{
 	}
 
 	from(track, artist){
+		this.artists = track.artists.map(artist => artist.name);
 		this.setOwner(track.artists[track.artists.length - 1].name, artist ? TrackImage.from(artist.images) : null);
 		this.setMetadata(track.id, track.name, track.duration_ms / 1000, TrackImage.from(track.album.images));
 
@@ -149,8 +150,17 @@ const api = (new class SpotifyAPI{
 		var query = track.author + ' ' + track.title;
 		var results = await Youtube.Music.search(query);
 
+		if(results.length){
+			var result = results[0];
+
+			if(track.artists.includes(result.author))
+				return result;
+			if(track.title.includes(result.title) || result.title.includes(track.title))
+				return result;
+		}
+
 		for(var result of results){
-			if(results.author == track.author)
+			if(track.artists.includes(result.author))
 				return result;
 			if(result.title == track.title)
 				return result;
