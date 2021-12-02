@@ -38,6 +38,10 @@ class TrackStream{
 	equals(other){
 		return this == other;
 	}
+
+	async getUrl(){
+		return null;
+	}
 }
 
 class TrackStreams extends Array{
