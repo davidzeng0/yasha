@@ -20,7 +20,29 @@ class SoundcloudTrack extends Track{
 			track.title,
 			track.duration / 1000,
 			TrackImage.from(this.get_thumbnails(track))
-		).setStreams(streams);
+		).setStreams(this.from_streams(track));
+	}
+
+	from_streams(track){
+		var streams = new SoundcloudStreams();
+
+		if(!track.media || !track.media.transcodings)
+			throw new SourceError.UNPLAYABLE('No streams found');
+		for(var stream of track.media.transcodings){
+			var [match, container, codecs] = /audio\/([a-zA-Z0-9]{3,4})(?:;(?:\+| )?codecs="(.*?)")?/.exec(stream.format.mime_type);
+
+			if(container == 'mpeg' && !codecs)
+				codecs = 'mp3';
+			streams.push(
+				new SoundcloudStream(stream.url)
+					.setDuration(stream.duration / 1000)
+					.setBitrate(-1)
+					.setTracks(false, true)
+					.setMetadata(container, codecs)
+			);
+		}
+
+		return streams;
 	}
 
 	get_thumbnails(track){
@@ -119,7 +141,13 @@ class SoundcloudPlaylist extends TrackPlaylist{
 
 class SoundcloudStream extends TrackStream{
 	constructor(url){
-		super(url);
+		super(null);
+
+		this.stream_url = url;
+	}
+
+	async getUrl(){
+		return (await api.request(this.stream_url)).url;
 	}
 }
 
@@ -140,9 +168,7 @@ class SoundcloudStreams extends TrackStreams{
 var api = new class SoundcloudAPI{
 	constructor(){
 		this.client_id = null;
-
 		this.reloading = null;
-		this.reload();
 	}
 
 	async reload(){
@@ -160,6 +186,8 @@ var api = new class SoundcloudAPI{
 	}
 
 	async prefetch(){
+		if(!this.client_id)
+			this.reload();
 		if(this.reloading) await this.reloading;
 	}
 
@@ -281,8 +309,6 @@ var api = new class SoundcloudAPI{
 
 		if(body.kind == 'track'){
 			try{
-				var streams = await this.resolve_streams(body);
-
 				return new SoundcloudTrack().from(body, streams);
 			}catch(e){
 				throw new SourceError.INTERNAL_ERROR(null, e);
@@ -294,44 +320,13 @@ var api = new class SoundcloudAPI{
 		}
 	}
 
-	async resolve_streams(track){
-		var streams = new SoundcloudStreams();
-
-		if(!track.media || !track.media.transcodings)
-			throw new SourceError.UNPLAYABLE('No streams found');
-		var requests = [];
-
-		for(var stream of track.media.transcodings)
-			requests.push(this.request(stream.url));
-		requests = await Promise.all(requests);
-
-		for(var i = 0; i < track.media.transcodings.length; i++){
-			var stream = track.media.transcodings[i],
-				data = requests[i];
-			var [match, container, codecs] = /audio\/([a-zA-Z0-9]{3,4})(?:;(?:\+| )?codecs="(.*?)")?/.exec(stream.format.mime_type);
-
-			if(container == 'mpeg' && !codecs)
-				codecs = 'mp3';
-			streams.push(
-				new SoundcloudStream(data.url)
-					.setDuration(stream.duration / 1000)
-					.setBitrate(-1)
-					.setTracks(false, true)
-					.setMetadata(container, codecs)
-			);
-		}
-
-		return streams;
-	}
-
 	async get(id){
 		var body = await this.api_request('tracks/' + id);
 
 		var result, streams;
 
 		try{
-			streams = await this.resolve_streams(body);
-			result = new SoundcloudTrack().from(body, streams);
+			result = new SoundcloudTrack().from(body);
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
@@ -343,7 +338,7 @@ var api = new class SoundcloudAPI{
 		var body = await this.api_request('tracks/' + id);
 
 		try{
-			return this.resolve_streams(body);
+			return new SoundcloudTrack().from_streams(body);
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}

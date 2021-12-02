@@ -13,7 +13,6 @@ var js_key_string = '(?:' + js_variable + '|' + js_string + ')';
 var js_property_string = '(?:\\.' + js_variable + '|\\[' + js_string + '\\])';
 var js_empty_string = '(?:\'\'|"")';
 var js_capturing_string = '(?:\'([^\'\\\\]*(:?\\\\[\\s\\S][^\'\\\\]*)*)\'|"([^"\\\\]*(:?\\\\[\\s\\S][^"\\\\]*)*)")';
-var js_capturing_key = '(' + js_variable + ')|' + js_capturing_string;
 
 var signature_function_ids = {
 	reverse: 0,
@@ -48,70 +47,91 @@ var signature_functions = [
 var signature_function_definitions = 'var (' + js_variable + ')=\\{((?:(?:' + signature_functions.map((f) => js_key_string + f.content).join('|') + '),?\\r?\\n?)+)\\};';
 var signature_function_execs = 'function(?: ' + js_variable + ')?\\(a\\)\\{a=a\\.split\\(' + js_empty_string + '\\);\\s*((?:(?:a=)?' + js_variable + js_property_string + '\\(a,\\d+\\);)*)return a\\.join\\(' + js_empty_string + '\\)\\}';
 
-var n_functions = [
+var n_element_types = [
 	{
 		content: 'function\\(d,e\\)\\{e=\\(e%d\\.length\\+d\\.length\\)%d\\.length;d\\.splice\\(e,1\\)\\}',
 		process: function(content){
-			return function(d, e){
-				e = (e % d.length + d.length) % d.length;
-				d.splice(e, 1);
+			return {
+				type: 'function',
+				value: function(d, e){
+					e = (e % d.length + d.length) % d.length;
+					d.splice(e, 1);
+				}
 			}
 		}
 	},
 	{
 		content: 'function\\(d,e\\)\\{e=\\(e%d\\.length\\+d\\.length\\)%d\\.length;var f=d\\[0\\];d\\[0\\]=d\\[e\\];d\\[e\\]=f\\}',
 		process: function(content){
-			return function(d, e){
-				var f = d[0];
+			return {
+				type: 'function',
+				value: function(d, e){
+					var f = d[0];
 
-				e = (e % d.length + d.length) % d.length;
-				d[0] = d[e];
-				d[e] = f;
+					e = (e % d.length + d.length) % d.length;
+					d[0] = d[e];
+					d[e] = f;
+				}
 			}
 		}
 	},
 	{
 		content: 'function\\(d,e\\)\\{d\\.push\\(e\\)\\}',
 		process: function(content){
-			return function(d, e){
-				d.push(e);
+			return {
+				type: 'function',
+				value: function(d, e){
+					d.push(e);
+				}
 			}
 		}
 	},
 	{
 		content: 'function\\(d\\)\\{for\\(var e=d\\.length;e;\\)d\\.push\\(d\\.splice\\(--e,1\\)\\[0\\]\\)\\}',
 		process: function(content){
-			return function(d){
-				for(var e = d.length; e; )
-					d.push(d.splice(--e, 1)[0]);
+			return {
+				type: 'function',
+				value: function(d){
+					for(var e = d.length; e; )
+						d.push(d.splice(--e, 1)[0]);
+				}
 			}
 		}
 	},
 	{
 		content: 'function\\(d\\)\\{d\\.reverse\\(\\)\\}',
 		process: function(content){
-			return function(d){
-				d.reverse();
+			return {
+				type: 'function',
+				value: function(d){
+					d.reverse();
+				}
 			}
 		}
 	},
 	{
 		content: 'function\\(d,e\\)\\{e=\\(e%d\\.length\\+d\\.length\\)%d\\.length;d\\.splice\\(-e\\)\\.reverse\\(\\)\\.forEach\\(function\\(f\\)\\{d\\.unshift\\(f\\)\\}\\)\\}',
 		process: function(content){
-			return function(d, e){
-				e = (e % d.length + d.length) % d.length;
-				d.splice(-e).reverse().forEach(function(f){
-					d.unshift(f);
-				});
+			return {
+				type: 'function',
+				value: function(d, e){
+					e = (e % d.length + d.length) % d.length;
+					d.splice(-e).reverse().forEach(function(f){
+						d.unshift(f);
+					});
+				}
 			}
 		}
 	},
 	{
 		content: 'function\\(d,e\\)\\{e=\\(e%d\\.length\\+d\\.length\\)%d\\.length;d\\.splice\\(0,1,d\\.splice\\(e,1,d\\[0\\]\\)\\[0\\]\\)\\}',
 		process: function(content){
-			return function(d, e){
-				e = (e % d.length + d.length) % d.length;
-				d.splice(0, 1, d.splice(e, 1, d[0])[0]);
+			return {
+				type: 'function',
+				value: function(d, e){
+					e = (e % d.length + d.length) % d.length;
+					d.splice(0, 1, d.splice(e, 1, d[0])[0]);
+				}
 			}
 		}
 	},
@@ -120,7 +140,10 @@ var n_functions = [
 		process: function(content){
 			var switch_content = new RegExp('function\\(d,e\\)\\{for\\(var f=64,h=\\[\\];\\+\\+f-h\\.length-32;\\)\\{switch\\(f\\)\\{([^]*?)\\}h\\.push\\(String\\.fromCharCode\\(f\\)\\)\\}d\\.forEach\\(function\\(l,m,n\\)\\{this\\.push\\(n\\[m\\]=h\\[\\(h\\.indexOf\\(l\\)-h\\.indexOf\\(this\\[m\\]\\)\\+m-32\\+f--\\)%h\\.length\\]\\)\\},e\\.split\\(' + js_empty_string + '\\)\\)\\}').exec(content);
 
-			return process_switch_content(switch_content && switch_content[1], true, false);
+			return {
+				type: 'function',
+				value: process_switch_content(switch_content && switch_content[1], true, false)
+			}
 		}
 	},
 	{
@@ -128,7 +151,10 @@ var n_functions = [
 		process: function(content){
 			var switch_content = new RegExp('function\\(d,e\\)\\{for\\(var f=64,h=\\[\\];\\+\\+f-h\\.length-32;\\)switch\\(f\\)\\{([^]*?)\\}d\\.forEach\\(function\\(l,m,n\\)\\{this\\.push\\(n\\[m\\]=h\\[\\(h\\.indexOf\\(l\\)-h\\.indexOf\\(this\\[m\\]\\)\\+m-32\\+f--\\)%h\\.length\\]\\)\\},e\\.split\\(' + js_empty_string + '\\)\\)\\}').exec(content);
 
-			return process_switch_content(switch_content && switch_content[1], false, false);
+			return {
+				type: 'function',
+				value: process_switch_content(switch_content && switch_content[1], false, false)
+			}
 		}
 	},
 	{
@@ -136,7 +162,10 @@ var n_functions = [
 		process: function(content){
 			var switch_content = new RegExp('function\\(\\)\\{for\\(var d=64,e=\\[\\];\\+\\+d-e\\.length-32;\\)\\{switch\\(d\\)\\{([^]*?)\\}e\\.push\\(String\\.fromCharCode\\(d\\)\\)\\}return e\\}').exec(content);
 
-			return process_switch_content(switch_content && switch_content[1], true, true);
+			return {
+				type: 'function',
+				value: process_switch_content(switch_content && switch_content[1], true, true)
+			}
 		}
 	},
 	{
@@ -144,30 +173,91 @@ var n_functions = [
 		process: function(content){
 			var switch_content = new RegExp('function\\(\\)\\{for\\(var d=64,e=\\[\\];\\+\\+d-e\\.length-32;\\)switch\\(d\\)\\{([^]*?)\\}return e\\}').exec(content);
 
-			return process_switch_content(switch_content && switch_content[1], false, true);
+			return {
+				type: 'function',
+				value: process_switch_content(switch_content && switch_content[1], false, true)
+			}
 		}
 	},
 	{
 		content: 'function\\(d,e\\)\\{for\\(e=\\(e%d\\.length\\+d\\.length\\)%d\\.length;e--;\\)d\\.unshift\\(d\\.pop\\(\\)\\)\\}',
 		process: function(content){
-			return function(d, e){
-				e = (e % d.length + d.length) % d.length;
+			return {
+				type: 'function',
+				value: function(d, e){
+					e = (e % d.length + d.length) % d.length;
 
-				while(e--)
-					d.unshift(d.pop());
+					while(e--)
+						d.unshift(d.pop());
+				}
 			}
 		}
 	},
 	{
 		content: 'function\\(d,e,f\\)\\{var h=f\\.length;d\\.forEach\\(function\\(l,m,n\\)\\{this\\.push\\(n\\[m\\]=f\\[\\(f\\.indexOf\\(l\\)-f\\.indexOf\\(this\\[m\\]\\)\\+m\\+h--\\)%f\\.length\\]\\)\\},e\\.split\\(' + js_empty_string + '\\)\\)\\}',
 		process: function(content){
-			return function(d, e, f){
-				var h = f.length;
+			return {
+				type: 'function',
+				value: function(d, e, f){
+					var h = f.length;
 
-				d.forEach(function(l, m, n){
-					this.push(n[m] = f[(f.indexOf(l) - f.indexOf(this[m]) + m + h--) % f.length]);
-				}, e.split(''));
+					d.forEach(function(l, m, n){
+						this.push(n[m] = f[(f.indexOf(l) - f.indexOf(this[m]) + m + h--) % f.length]);
+					}, e.split(''));
+				}
 			}
+		}
+	},
+	{
+		content: '-?\\d+E\\d+',
+		process: function(content){
+			content = content.split('E');
+
+			return {type: 'number', value: parseInt(content[0]) * Math.pow(10, parseInt(content[1]))}
+		}
+	},
+	{
+		content: '-?\\d+',
+		process: function(content){
+			return {type: 'number', value: parseInt(content)}
+		}
+	},
+	{
+		content: js_variable,
+		process: function(content){
+			if(content != 'a' && content != 'b' && content != 'c' && content != 'null')
+				throw new Error('Unknown variable: ' + content);
+			return {type: 'variable', value: content}
+		}
+	},
+	{
+		content: js_singlequote_string,
+		process: function(content){
+			return {type: 'string', value: content.substring(1, content.length - 1)}
+		}
+	},
+	{
+		content: null,
+		process: function(content){
+			return null
+		}
+	},
+	{
+		content: js_doublequote_string,
+		process: function(content){
+			return {type: 'string', value: content.substring(1, content.length - 1)}
+		}
+	},
+	{
+		content: null,
+		process: function(content){
+			return null
+		}
+	},
+	{
+		content: '\\r?\\n',
+		process: function(content){
+			return null;
 		}
 	}
 ];
@@ -176,7 +266,7 @@ var n_c_copy = 'c\\[(\\d+?)\\]=c(?:;|,)';
 var n_action = 'c\\[(\\d+?)\\]\\(([^]*?)\\)(?:;|,)?';
 
 var n_match = 'function(?: ' + js_variable + ')?\\(a\\)\\{var b=a\\.split\\(' + js_empty_string + '\\),c=\\[([^]*?)\\];\\r?\\n?((?:' + n_c_copy + ')*?)\\r?\\n?try\\{((?:' + n_action + ')*?)\\}catch\\(d\\)\\{return' + js_capturing_string + '\\+a\\}\\r?\\n?return b\\.join\\(' + js_empty_string + '\\)\\}';
-var n_array_elements = n_functions.map(a => a.content).map(a => '(' + a + ')').concat(['(-?[\\d]+)', js_capturing_key, '(\\r?\\n)']).join('|');
+var n_array_elements = n_element_types.map(a => a.content).map(a => a ? '(' + a + ')' : null).filter(a => a != null).join('|');
 
 var switch_code = [
 	{
@@ -432,29 +522,13 @@ var decoder = new class YoutubeDecoder{
 
 		while(result = array_elements_regex.exec(array_contents)){
 			for(var i = 1; i < result.length; i++){
-				if(result[i] === undefined)
-					continue;
-				if(i <= n_functions.length)
-					array.push({type: 'function', value: n_functions[i - 1].process(result[i])});
-				else switch(i - n_functions.length){
-					case 1:
-						array.push({type: 'number', value: parseInt(result[i])});
+				if(result[i] !== undefined){
+					result = n_element_types[i - 1].process(result[i]);
 
-						break;
-					case 2:
-						array.push({type: 'variable', value: result[i]});
-
-						if(result[i] != 'a' && result[i] != 'b' && result[i] != 'c' && result[i] != 'null')
-							throw new Error('Unknown variable: ' + result[i]);
-						break;
-					case 4:
-					case 5:
-						array.push({type: 'string', value: result[i]});
-
-						break;
+					if(result)
+						array.push(result);
+					break;
 				}
-
-				break;
 			}
 		}
 

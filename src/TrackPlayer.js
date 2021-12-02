@@ -211,6 +211,19 @@ class TrackPlayer extends EventEmitter{
 			return false;
 		}
 
+		if(!this.stream.url){
+			try{
+				this.stream.url = await this.stream.getUrl();
+			}catch(error){
+				if(this.play_id == play_id)
+					this.emit('error', error);
+				return false;
+			}
+
+			if(this.play_id != play_id)
+				return false;
+		}
+
 		return true;
 	}
 
