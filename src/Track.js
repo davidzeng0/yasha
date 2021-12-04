@@ -97,6 +97,10 @@ class Track{
 		return this;
 	}
 
+	async fetch(){
+		return null;
+	}
+
 	async getStreams(){
 		return null;
 	}

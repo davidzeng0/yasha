@@ -93,6 +93,10 @@ class SoundcloudTrack extends Track{
 		return thumbnails;
 	}
 
+	async fetch(){
+		return await api.get(this.id);
+	}
+
 	async getStreams(){
 		return await api.get_streams(this.id);
 	}

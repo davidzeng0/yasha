@@ -743,6 +743,10 @@ class YoutubeTrack extends Track{
 		).setPlayable(track.isPlayable ? true : false);
 	}
 
+	async fetch(){
+		return await api.get(this.id);
+	}
+
 	async getStreams(){
 		return await api.get_streams(this.id);
 	}
@@ -1200,6 +1204,8 @@ class YoutubeMusicTrack extends YoutubeTrack{
 	}
 
 	from_search(track){
+		if(!track.playlistItemData)
+			return;
 		var title = track.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text;
 		var metadata = track.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text;
 
