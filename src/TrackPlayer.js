@@ -46,6 +46,7 @@ class TrackPlayer extends EventEmitter{
 		if(options){
 			this.normalize_volume = options.normalize_volume;
 			this.external_encrypt = options.external_encrypt;
+			this.external_packet_send = options.external_packet_send;
 		}
 
 		this.last_error = 0;
@@ -132,11 +133,16 @@ class TrackPlayer extends EventEmitter{
 		return this.subscriptions[0].connection.state.networking.state.connectionData;
 	}
 
+	get_connection_udp(){
+		return this.subscriptions[0].connection.state.networking.state.udp;
+	}
+
 	init_secretbox(){
 		if(!this.external_encrypt || !this.player)
 			return;
 		if(this.secretbox_ready()){
-			var connection_data = this.get_connection_data();
+			var connection_data = this.get_connection_data(),
+				udp = this.get_connection_udp();
 			var mode;
 
 			switch(connection_data.encryptionMode){
@@ -159,10 +165,15 @@ class TrackPlayer extends EventEmitter{
 			this.player.ffplayer.setSecretBox(connection_data.secretKey, mode, connection_data.ssrc);
 			this.player.ffplayer.updateSecretBox(data.sequence, data.timestamp, data.nonce);
 
+			if(this.external_packet_send)
+				this.player.ffplayer.pipe(udp.socket._handle.fd, udp.remote.ip, udp.remote.port);
 			return;
 		}
 
 		this.player.ffplayer.setSecretBox(new Uint8Array(32), 0, 0);
+
+		if(this.external_packet_send)
+			this.player.ffplayer.pipe(-1);
 	}
 
 	create_player(start_time){
@@ -173,8 +184,6 @@ class TrackPlayer extends EventEmitter{
 
 		if(start_time)
 			this.player.seek(start_time);
-		if(this.normalize_volume)
-			this.player.setVolume(this.stream.volume);
 		this.player.ffplayer.onready = this.emit.bind(this, 'ready');
 		this.player.ffplayer.onpacket = this.onpacket.bind(this);
 		this.player.ffplayer.onfinish = this.onfinish.bind(this);
@@ -423,6 +432,8 @@ class TrackPlayer extends EventEmitter{
 	async start(){
 		if(!await this.load_streams() || !this.player) /* destroy could have been called while waiting */
 			return;
+		if(this.normalize_volume)
+			this.player.setVolume(this.stream.volume);
 		this.player.setURL(this.stream.url);
 		this.player.start();
 	}
