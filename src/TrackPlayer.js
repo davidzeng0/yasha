@@ -105,9 +105,12 @@ class TrackPlayer extends EventEmitter{
 	}
 
 	onpacket(packet, length, frame_size){
+		this.stop_silence_frames();
+
+		if(this.external_packet_send)
+			return;
 		packet = new Uint8Array(packet.buffer, 0, length);
 
-		this.stop_silence_frames();
 		this.send(packet, frame_size);
 		this.emit('packet', packet, frame_size);
 	}
@@ -129,12 +132,16 @@ class TrackPlayer extends EventEmitter{
 		return this.subscriptions.length && this.subscriptions[0].connection.ready();
 	}
 
+	get_connection(){
+		return this.subscriptions[0].connection;
+	}
+
 	get_connection_data(){
-		return this.subscriptions[0].connection.state.networking.state.connectionData;
+		return this.get_connection().state.networking.state.connectionData;
 	}
 
 	get_connection_udp(){
-		return this.subscriptions[0].connection.state.networking.state.udp;
+		return this.get_connection().state.networking.state.udp;
 	}
 
 	init_secretbox(){
@@ -165,8 +172,12 @@ class TrackPlayer extends EventEmitter{
 			this.player.ffplayer.setSecretBox(connection_data.secretKey, mode, connection_data.ssrc);
 			this.player.ffplayer.updateSecretBox(data.sequence, data.timestamp, data.nonce);
 
-			if(this.external_packet_send)
+			if(this.external_packet_send){
 				this.player.ffplayer.pipe(udp.socket._handle.fd, udp.remote.ip, udp.remote.port);
+
+				this.get_connection().setSpeaking(true);
+			}
+
 			return;
 		}
 
