@@ -79,8 +79,12 @@ class VoiceConnection extends voice.VoiceConnection{
 		if(state.status != this.state.status){
 			if(this.promise)
 				this.handle_state_change(state);
-			else if(state.status == VoiceConnectionStatus.Disconnected)
-				this.await_connection();
+			else if(state.status == VoiceConnectionStatus.Disconnected){
+				if(state.reason == VoiceConnectionDisconnectReason.WebSocketClose)
+					this.await_connection();
+				else
+					this.destroy(state.reason != VoiceConnectionDisconnectReason.AdapterUnavailable);
+			}
 		}
 
 		super.state = state;
@@ -91,14 +95,20 @@ class VoiceConnection extends voice.VoiceConnection{
 	}
 
 	destroy(adapter_available = true){
-		if(adapter_available && this.state.status == VoiceConnectionStatus.Ready){
+		if(this.state.status == VoiceConnectionStatus.Destroyed)
+			return;
+		if(adapter_available){
 			this._state.status = VoiceConnectionStatus.Disconnected;
 
 			super.disconnect();
 		}
 
 		this.state = {status: VoiceConnectionStatus.Destroyed};
-		this.guild.me.voice.connection = null;
+
+		if(this.guild.me.voice.connection == this)
+			this.guild.me.voice.connection = null;
+		else
+			console.warn('Voice connection mismatch');
 	}
 
 	disconnect(){
