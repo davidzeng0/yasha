@@ -61,20 +61,23 @@ class TrackPlayer extends EventEmitter{
 		this.silence_frames_left = 0;
 		this.silence_frames_needed = false;
 
-		this.onconnectionready = this.onconnectionready.bind(this);
+		this.onstatechange = this.onstatechange.bind(this);
 
 		this.player = null;
 	}
 
-	onconnectionready(){
-		this.init_secretbox();
+	onstatechange(old, cur){
+		if(cur.status == VoiceConnection.Status.Ready)
+			this.init_secretbox();
+		else if(this.external_encrypt && this.external_packet_send)
+			this.player.ffplayer.pipe(-1);
 	}
 
 	subscribe(connection){
 		if(this.external_encrypt){
 			if(this.subscriptions.length)
 				throw new Error('Cannot subscribe to multiple connections when external encryption is enabled');
-			connection.on(VoiceConnection.Status.Ready, this.onconnectionready);
+			connection.on('stateChange', this.onstatechange);
 		}
 
 		var subscription = new Subscription(connection, this);
@@ -92,7 +95,7 @@ class TrackPlayer extends EventEmitter{
 		if(index == -1)
 			return;
 		if(this.external_encrypt)
-			this.subscriptions[index].connection.removeListener(VoiceConnection.Status.Ready, this.onconnectionready);
+			this.subscriptions[index].connection.removeListener('stateChange', this.onstatechange);
 		this.subscriptions.splice(index, 1);
 
 		if(!this.subscriptions.length)
