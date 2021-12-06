@@ -449,60 +449,96 @@ class TrackPlayer extends EventEmitter{
 		this.player.start();
 	}
 
+	check_destroyed(){
+		if(!this.player)
+			throw new Error('Player was destroyed or nothing was playing');
+	}
+
 	isPaused(){
+		this.check_destroyed();
+
 		return this.player.isPaused();
 	}
 
 	setPaused(paused){
+		this.check_destroyed();
+
 		if(paused)
 			this.start_silence_frames();
 		return this.player.setPaused(paused);
 	}
 
 	setVolume(volume){
+		this.check_destroyed();
+
 		return this.player.setVolume(volume);
 	}
 
 	setBitrate(bitrate){
+		this.check_destroyed();
+
 		return this.player.setBitrate(bitrate);
 	}
 
 	setRate(rate){
+		this.check_destroyed();
+
 		return this.player.setRate(rate);
 	}
 
 	setTempo(tempo){
+		this.check_destroyed();
+
 		return this.player.setTempo(tempo);
 	}
 
 	setTremolo(depth, rate){
+		this.check_destroyed();
+
 		return this.player.setTremolo(depth, rate);
 	}
 
 	setEqualizer(eqs){
+		this.check_destroyed();
+
 		return this.player.setEqualizer(eqs);
 	}
 
 	seek(time){
+		this.check_destroyed();
 		this.start_silence_frames();
 
 		return this.player.seek(time);
 	}
 
 	getTime(){
+		this.check_destroyed();
+
 		return this.player.getTime();
 	}
 
 	getDuration(){
+		this.check_destroyed();
+
 		return this.player.getDuration();
 	}
 
 	getFramesDropped(){
+		this.check_destroyed();
+
 		return this.player.getFramesDropped();
 	}
 
 	getTotalFrames(){
+		this.check_destroyed();
+
 		return this.player.getTotalFrames();
+	}
+
+	isCodecCopy(){
+		this.check_destroyed();
+
+		return this.player.ffplayer.isCodecCopy();
 	}
 
 	stop(){

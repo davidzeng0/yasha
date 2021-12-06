@@ -824,7 +824,11 @@ class YoutubeStream extends TrackStream{
 
 class YoutubeStreams extends TrackStreams{
 	constructor(start, playerResponse){
-		super(Math.min(1, Math.pow(10, (playerResponse.playerConfig.audioConfig.loudnessDb || 0) / -20)), playerResponse.videoDetails.isLive, start);
+		var loudness = 0;
+
+		if(playerResponse.playerConfig?.audioConfig?.loudnessDb)
+			loudness = playerResponse.playerConfig.audioConfig.loudnessDb;
+		super(Math.min(1, Math.pow(10, -loudness / 20)), playerResponse.videoDetails.isLive, start);
 
 		var {formats, adaptiveFormats, expiresInSeconds} = playerResponse.streamingData;
 
