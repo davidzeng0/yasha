@@ -155,7 +155,7 @@ const soundcloud = new class Soundcloud extends APISource{
 		try{
 			return await this.api.resolve(match);
 		}catch(e){
-			if(e.code == SourceError.code.NOT_A_TRACK)
+			if(e.code == SourceError.codes.NOT_A_TRACK)
 				return null;
 			throw e;
 		}

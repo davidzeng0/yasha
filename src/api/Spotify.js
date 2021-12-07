@@ -11,7 +11,7 @@ class SpotifyTrack extends Track{
 
 	from(track, artist){
 		this.artists = track.artists.map(artist => artist.name);
-		this.setOwner(track.artists[track.artists.length - 1].name, artist ? TrackImage.from(artist.images) : null);
+		this.setOwner(this.artists.join(', '), artist ? TrackImage.from(artist.images) : null);
 		this.setMetadata(track.id, track.name, track.duration_ms / 1000, TrackImage.from(track.album.images));
 
 		return this;
