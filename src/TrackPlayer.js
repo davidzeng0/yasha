@@ -110,11 +110,10 @@ class TrackPlayer extends EventEmitter{
 	onpacket(packet, length, frame_size){
 		this.stop_silence_frames();
 
-		if(this.external_packet_send)
-			return;
 		packet = new Uint8Array(packet.buffer, 0, length);
 
-		this.send(packet, frame_size);
+		if(!this.external_packet_send)
+			this.send(packet, frame_size);
 		this.emit('packet', packet, frame_size);
 	}
 

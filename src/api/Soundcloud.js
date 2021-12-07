@@ -9,7 +9,7 @@ class SoundcloudTrack extends Track{
 		super('Soundcloud');
 	}
 
-	from(track, streams){
+	from(track){
 		this.permalink_url = track.permalink_url;
 
 		return this.setOwner(
@@ -313,7 +313,7 @@ var api = new class SoundcloudAPI{
 
 		if(body.kind == 'track'){
 			try{
-				return new SoundcloudTrack().from(body, streams);
+				return new SoundcloudTrack().from(body);
 			}catch(e){
 				throw new SourceError.INTERNAL_ERROR(null, e);
 			}
