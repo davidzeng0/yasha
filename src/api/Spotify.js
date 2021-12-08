@@ -70,8 +70,6 @@ const api = (new class SpotifyAPI{
 
 		this.needs_reload = false;
 		this.account_data = {};
-
-		this.reload();
 	}
 
 	async reload(force){
@@ -104,7 +102,10 @@ const api = (new class SpotifyAPI{
 	}
 
 	prefetch(){
-		if(this.reloading) return this.reloading;
+		if(!this.token)
+			this.reload();
+		if(this.reloading)
+			return this.reloading;
 	}
 
 	async api_request(path, options = {}){

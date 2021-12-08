@@ -98,6 +98,14 @@ class VoiceConnection extends voice.VoiceConnection{
 		if(this.state.status == VoiceConnectionStatus.Destroyed)
 			return;
 		if(adapter_available){
+			this._state.status = VoiceConnectionStatus.Destroyed;
+
+			/* remove the subscription */
+			this.state = {
+				status: VoiceConnectionStatus.Destroyed,
+				adapter: this.state.adapter
+			};
+
 			this._state.status = VoiceConnectionStatus.Disconnected;
 
 			super.disconnect();

@@ -3,7 +3,7 @@
 	"name": "yasha",
 	"dependencies": {
 		"discord.js": "^13.3.0",
-		"node-fetch": "^3.0.0",
+		"node-fetch": "^2.6.6",
 		"sodium": "^3.0.2",
 		"@discordjs/voice": "^0.7.2",
 		"sange": "github:ilikdoge/sange"
