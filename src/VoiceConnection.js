@@ -10,7 +10,7 @@ class VoiceConnection extends voice.VoiceConnection{
 		}, {adapterCreator: channel.guild.voiceAdapterCreator});
 
 		this.guild = channel.guild;
-		this.guild.me.voice.connection = this;
+		this.guild.connection = this;
 		this.connect_timeout = null;
 		this.connected = false;
 
@@ -113,8 +113,8 @@ class VoiceConnection extends voice.VoiceConnection{
 
 		this.state = {status: VoiceConnectionStatus.Destroyed};
 
-		if(this.guild.me.voice.connection == this)
-			this.guild.me.voice.connection = null;
+		if(this.guild.connection == this)
+			this.guild.connection = null;
 		else
 			console.warn('Voice connection mismatch');
 	}
@@ -157,11 +157,7 @@ class VoiceConnection extends voice.VoiceConnection{
 	static async connect(channel, options = {}){
 		if(!channel.joinable)
 			throw new Error(channel.full ? 'Channel is full' : 'No permissions');
-		var voice_state = channel.guild.voiceStates.resolve(channel.guild.me.id);
-
-		if(!voice_state)
-			voice_state = channel.guild.voiceStates._add({user_id: channel.guild.me.id});
-		var connection = voice_state.connection;
+		var connection = channel.guild.connection;
 
 		if(!connection)
 			connection = new VoiceConnection(channel, options);
