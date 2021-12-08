@@ -69,7 +69,7 @@ class TrackPlayer extends EventEmitter{
 	onstatechange(old, cur){
 		if(cur.status == VoiceConnection.Status.Ready)
 			this.init_secretbox();
-		else if(this.external_encrypt && this.external_packet_send)
+		else if(this.external_encrypt && this.external_packet_send && this.player)
 			this.player.ffplayer.pipe(-1);
 	}
 

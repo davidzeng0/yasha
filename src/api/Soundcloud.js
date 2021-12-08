@@ -192,7 +192,8 @@ var api = new class SoundcloudAPI{
 	async prefetch(){
 		if(!this.client_id)
 			this.reload();
-		if(this.reloading) await this.reloading;
+		if(this.reloading)
+			await this.reloading;
 	}
 
 	async load(){

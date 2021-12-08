@@ -969,6 +969,8 @@ const api = new class YoutubeAPI{
 
 		await this.prefetch(time);
 
+		if(path == 'player')
+			body.playbackContext = {contentPlaybackContext: {signatureTimestamp: this.signature_timestamp}};
 		body.context = this.innertube_context;
 		options.method = 'POST';
 
@@ -1012,10 +1014,6 @@ const api = new class YoutubeAPI{
 		return body;
 	}
 
-	async player_request(id){
-		return await this.api_request('player', {videoId: id, playbackContext: {contentPlaybackContext: {signatureTimestamp: this.signature_timestamp}}})
-	}
-
 	async get(id){
 		var start;
 		var responses;
@@ -1025,7 +1023,7 @@ const api = new class YoutubeAPI{
 
 			responses = [
 				this.api_request('next', {videoId: id}),
-				this.player_request(id)
+				this.api_request('player', {videoId: id})
 			];
 
 			try{
@@ -1073,7 +1071,7 @@ const api = new class YoutubeAPI{
 			start = Date.now();
 
 			try{
-				player_response = await this.player_request(id);
+				player_response = await this.api_request('player', {videoId: id});
 			}catch(e){
 				if(tries)
 					throw e;
