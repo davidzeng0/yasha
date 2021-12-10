@@ -456,6 +456,10 @@ class TrackPlayer extends EventEmitter{
 			throw new Error('Player was destroyed or nothing was playing');
 	}
 
+	hasPlayer(){
+		return this.player != null;
+	}
+
 	isPaused(){
 		this.check_destroyed();
 

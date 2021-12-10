@@ -3,7 +3,7 @@ class TrackStream{
 		this.url = url;
 		this.video = false;
 		this.audio = false;
-		this.bitrate = 0;
+		this.bitrate = -1;
 		this.duration = -1;
 		this.container = null;
 		this.codecs = null;
@@ -45,9 +45,7 @@ class TrackStream{
 }
 
 class TrackStreams extends Array{
-	constructor(volume, live, time){
-		super();
-
+	set(volume, live, time){
 		this.volume = volume;
 		this.live = live;
 		this.time = time;
@@ -57,7 +55,7 @@ class TrackStreams extends Array{
 		return false;
 	}
 
-	maybe_expired(){
+	maybeExpired(){
 		return false;
 	}
 }
