@@ -9,16 +9,29 @@ const {VoiceConnection} = require('yasha');
 
 VoiceConnection.connect(channel).then((connection) => {
 	console.log('Connected!');
+}).catch((error) => {
+	console.error('Could not connect', error.message);
 });
 ```
 
 #### Functions
 
 Connect
+
+Connects to a voice channel.
 ```js
 const {VoiceChannel} = require('discord.js');
 
 VoiceConnection.connect(channel: VoiceChannel): Promise<VoiceConnection>
+```
+
+Get
+
+Gets the voice channel from the guild.
+```js
+const {Guild} = require('discord.js');
+
+VoiceConnection.get(guild: Guild): VoiceConnection
 ```
 
 Subscribe (see @discordjs/voice subscribe documentation)
@@ -32,6 +45,33 @@ var subscription = connection.subscribe(player);
 Unubscribe
 ```js
 subscription.unsubscribe();
+```
+
+Rejoin
+
+```js
+const {VoiceChannel} = require('discord.js');
+
+var connection = await VoiceConnection.connect(...);
+
+connection.rejoin(channel: VoiceChannel): void
+```
+
+Disconnect/Destroy
+
+```js
+var connection = await VoiceConnection.connect(...);
+
+connection.disconnect(): void // alias for destroy
+connection.destroy(): void
+```
+
+Ready
+
+```js
+var connection = await VoiceConnection.connect(...);
+
+connection.ready(): boolean; // whether the connection is ready
 ```
 
 #### Events

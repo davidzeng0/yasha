@@ -10,7 +10,7 @@ class VoiceConnection extends voice.VoiceConnection{
 		}, {adapterCreator: channel.guild.voiceAdapterCreator});
 
 		this.guild = channel.guild;
-		this.guild.connection = this;
+		this.guild.voice_connection = this;
 		this.connect_timeout = null;
 		this.connected = false;
 
@@ -21,9 +21,17 @@ class VoiceConnection extends voice.VoiceConnection{
 			this._state.status = VoiceConnectionStatus.Signalling;
 	}
 
-	rejoin(channelId){
+	rejoin_id(channelId){
 		if(this.joinConfig.channelId != channelId)
 			super.rejoin({channelId});
+	}
+
+	rejoin(channel){
+		if(channel.guild.id != this.guild.id)
+			throw new Error('Channel is not in the same guild');
+		if(!channel.joinable)
+			throw new Error(channel.full ? 'Channel is full' : 'No permissions');
+		this.rejoin_id(channel.id);
 	}
 
 	disconnect_reason(reason){
@@ -113,8 +121,8 @@ class VoiceConnection extends voice.VoiceConnection{
 
 		this.state = {status: VoiceConnectionStatus.Destroyed};
 
-		if(this.guild.connection == this)
-			this.guild.connection = null;
+		if(this.guild.voice_connection == this)
+			this.guild.voice_connection = null;
 		else
 			console.warn('Voice connection mismatch');
 	}
@@ -157,12 +165,12 @@ class VoiceConnection extends voice.VoiceConnection{
 	static async connect(channel, options = {}){
 		if(!channel.joinable)
 			throw new Error(channel.full ? 'Channel is full' : 'No permissions');
-		var connection = channel.guild.connection;
+		var connection = channel.guild.voice_connection;
 
 		if(!connection)
 			connection = new VoiceConnection(channel, options);
 		else
-			connection.rejoin(channel.id);
+			connection.rejoin_id(channel.id);
 		if(connection.ready())
 			return connection;
 		connection.await_connection();
@@ -170,6 +178,10 @@ class VoiceConnection extends voice.VoiceConnection{
 		await connection.promise;
 
 		return connection;
+	}
+
+	static get(guild){
+		return guild.voice_connection;
 	}
 }
 

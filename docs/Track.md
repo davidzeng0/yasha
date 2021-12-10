@@ -25,13 +25,31 @@ class Track{
 
 	async getStreams(): Promise<TrackStreams>; // resolve streams
 
+	async fetch(): Promise<Track>; // re-fetch the track
+
 	get url(): string | null; // url to track
 
 	equals(other: Track): boolean; // whether two tracks are equal
 }
 
+class TrackStream{
+	url: string | null; // url to stream
+	video: boolean; // whether the stream has a video track
+	audio: boolean; // whether the stream has an audio track
+	bitrate: number; // stream bitrate (-1 if unknown)
+	duration: number; // stream duration in seconds (-1 if unknown)
+	container: string; // stream container (mp4, webm, ogg)
+	codecs: string; // stream codecs (opus, aac aka mp4a.40.2, mp3 aka mpeg)
+
+	getUrl(): Promise<string>; // if stream.url is null, extra steps are required to resolve the stream url. this function returns the resolved url
+}
+
 class TrackStreams extends Array{
 	volume: number; // the volume this track should be played at
+	live: boolean; // whether this track is live
+
+	expired(): boolean; // returns true if it is known that the streams expired
+	maybeExpired(): boolean; // unused
 }
 
 class TrackResults extends Array{
@@ -39,9 +57,9 @@ class TrackResults extends Array{
 }
 
 class TrackPlaylist extends TrackResults{
-	title: string; // playlist title
-	description: string; // playlist description
-	first_track: Track; // if a playlist and track are queried at the same time, this is the track
+	title: string | null; // playlist title
+	description: string | null; // playlist description
+	first_track: Track | null; // if a playlist and track are queried at the same time, this is the track
 
 	get url(): string | null; // url to playlist
 
