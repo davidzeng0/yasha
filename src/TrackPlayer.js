@@ -550,7 +550,8 @@ class TrackPlayer extends EventEmitter{
 	stop(){
 		this.start_silence_frames();
 
-		return this.player.stop();
+		if(this.player)
+			return this.player.stop();
 	}
 
 	destroy_player(){
