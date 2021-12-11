@@ -70,7 +70,7 @@ class TrackPlayer extends EventEmitter{
 		if(cur.status == VoiceConnection.Status.Ready)
 			this.init_secretbox();
 		else if(this.external_encrypt && this.external_packet_send && this.player)
-			this.player.ffplayer.pipe(-1);
+			this.player.ffplayer.pipe();
 	}
 
 	subscribe(connection){
@@ -175,7 +175,7 @@ class TrackPlayer extends EventEmitter{
 			this.player.ffplayer.updateSecretBox(data.sequence, data.timestamp, data.nonce);
 
 			if(this.external_packet_send){
-				this.player.ffplayer.pipe(udp.socket._handle.fd, udp.remote.ip, udp.remote.port);
+				this.player.ffplayer.pipe(udp.remote.ip, udp.remote.port);
 
 				this.get_connection().setSpeaking(true);
 			}
@@ -186,7 +186,7 @@ class TrackPlayer extends EventEmitter{
 		this.player.ffplayer.setSecretBox(new Uint8Array(32), 0, 0);
 
 		if(this.external_packet_send)
-			this.player.ffplayer.pipe(-1);
+			this.player.ffplayer.pipe();
 	}
 
 	create_player(start_time){
