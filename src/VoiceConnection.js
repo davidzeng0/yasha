@@ -34,7 +34,7 @@ class VoiceConnection extends voice.VoiceConnection{
 		this.rejoin_id(channel.id);
 	}
 
-	disconnect_reason(reason){
+	static disconnect_reason(reason){
 		switch(reason){
 			case VoiceConnectionDisconnectReason.AdapterUnavailable:
 				return 'Adapter unavailable';
@@ -61,9 +61,10 @@ class VoiceConnection extends voice.VoiceConnection{
 	onNetworkingError(error){
 		if(this.promise)
 			this.promise_reject(error);
-		else
+		else{
 			this.emit('error', error);
-		this.destroy();
+			this.destroy();
+		}
 	}
 
 	handle_state_change(state){
@@ -119,12 +120,11 @@ class VoiceConnection extends voice.VoiceConnection{
 			super.disconnect();
 		}
 
-		this.state = {status: VoiceConnectionStatus.Destroyed};
-
 		if(this.guild.voice_connection == this)
 			this.guild.voice_connection = null;
 		else
 			console.warn('Voice connection mismatch');
+		this.state = {status: VoiceConnectionStatus.Destroyed};
 	}
 
 	disconnect(){
@@ -182,6 +182,42 @@ class VoiceConnection extends voice.VoiceConnection{
 
 	static get(guild){
 		return guild.voice_connection;
+	}
+
+	static disconnect(guild, options){
+		if(guild.voice_connection){
+			guild.voice_connection.disconnect();
+
+			return;
+		}
+
+		if(!guild.me.voice.channel)
+			return;
+		var {rejoin, disconnect} = voice.VoiceConnection.prototype;
+
+		var dummy = {
+			state: {
+				status: VoiceConnectionStatus.ready,
+				adapter: guild.voiceAdapterCreator({
+					onVoiceServerUpdate(){},
+					onVoiceStateUpdate(){},
+					destroy(){}
+				})
+			},
+
+			joinConfig: {
+				guildId: guild.id,
+				channelId: guild.me.voice.channel.id,
+				...options
+			}
+		};
+
+		if(!rejoin.call(dummy))
+			throw new Error(this.disconnect_reason(VoiceConnectionDisconnectReason.AdapterUnavailable));
+		dummy.state.status = VoiceConnectionStatus.Ready;
+
+		if(!disconnect.call(dummy))
+			throw new Error(this.disconnect_reason(VoiceConnectionDisconnectReason.AdapterUnavailable));
 	}
 }
 

@@ -34,6 +34,15 @@ const {Guild} = require('discord.js');
 VoiceConnection.get(guild: Guild): VoiceConnection
 ```
 
+Disconnect
+
+Disconnect any voice channel in the guild
+```js
+const {Guild} = require('discord.js');
+
+VoiceConnection.disconnect(guild: Guild): void
+```
+
 Subscribe (see @discordjs/voice subscribe documentation)
 ```js
 const {TrackPlayer} = require('yasha');
