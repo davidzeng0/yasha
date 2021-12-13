@@ -31,10 +31,16 @@ player.start();
 
 Sample code
 ```js
-// designed to work with discord.js v13+ and uses discordjs/voice internally for voice connections
-
 const Discord = require('discord.js');
-const client = new Discord.Client();
+const client = new Discord.Client(
+	{
+		intents: [
+			Discord.Intents.FLAGS.GUILDS,
+			Discord.Intents.FLAGS.GUILD_MESSAGES,
+			Discord.Intents.FLAGS.GUILD_VOICE_STATES
+		]
+	}
+);
 
 const {Source, TrackPlayer, VoiceConnection} = require('yasha');
 
@@ -42,7 +48,7 @@ client.on('ready', () => {
 	console.log('Ready!');
 });
 
-client.on('message', (message) => {
+client.on('message', async (message) => {
 	if(message.content == 'play a song!'){
 		var connection = await VoiceConnection.connect(message.member.voice.channel); // see docs/VoiceConnection.md
 		var player = new TrackPlayer(); // see docs/TrackPlayer.md
@@ -52,8 +58,10 @@ client.on('message', (message) => {
 		connection.subscribe(player);
 		player.play(track);
 		player.start();
+
+		await message.channel.send('Now playing: **' + track.title.replaceAll('**', '\\*\\*') + '**');
 	}
 });
 
-client.login('your token');
+client.login('your token here');
 ```
