@@ -61,20 +61,23 @@ class TrackPlayer extends EventEmitter{
 		this.silence_frames_left = 0;
 		this.silence_frames_needed = false;
 
-		this.onconnectionready = this.onconnectionready.bind(this);
+		this.onstatechange = this.onstatechange.bind(this);
 
 		this.player = null;
 	}
 
-	onconnectionready(){
-		this.init_secretbox();
+	onstatechange(old, cur){
+		if(cur.status == VoiceConnection.Status.Ready)
+			this.init_secretbox();
+		else if(this.external_encrypt && this.external_packet_send && this.player)
+			this.player.ffplayer.pipe();
 	}
 
 	subscribe(connection){
 		if(this.external_encrypt){
 			if(this.subscriptions.length)
 				throw new Error('Cannot subscribe to multiple connections when external encryption is enabled');
-			connection.on(VoiceConnection.Status.Ready, this.onconnectionready);
+			connection.on('stateChange', this.onstatechange);
 		}
 
 		var subscription = new Subscription(connection, this);
@@ -92,7 +95,7 @@ class TrackPlayer extends EventEmitter{
 		if(index == -1)
 			return;
 		if(this.external_encrypt)
-			this.subscriptions[index].connection.removeListener(VoiceConnection.Status.Ready, this.onconnectionready);
+			this.subscriptions[index].connection.removeListener('stateChange', this.onstatechange);
 		this.subscriptions.splice(index, 1);
 
 		if(!this.subscriptions.length)
@@ -107,11 +110,10 @@ class TrackPlayer extends EventEmitter{
 	onpacket(packet, length, frame_size){
 		this.stop_silence_frames();
 
-		if(this.external_packet_send)
-			return;
 		packet = new Uint8Array(packet.buffer, 0, length);
 
-		this.send(packet, frame_size);
+		if(!this.external_packet_send)
+			this.send(packet, frame_size);
 		this.emit('packet', packet, frame_size);
 	}
 
@@ -173,7 +175,7 @@ class TrackPlayer extends EventEmitter{
 			this.player.ffplayer.updateSecretBox(data.sequence, data.timestamp, data.nonce);
 
 			if(this.external_packet_send){
-				this.player.ffplayer.pipe(udp.socket._handle.fd, udp.remote.ip, udp.remote.port);
+				this.player.ffplayer.pipe(udp.remote.ip, udp.remote.port);
 
 				this.get_connection().setSpeaking(true);
 			}
@@ -184,7 +186,7 @@ class TrackPlayer extends EventEmitter{
 		this.player.ffplayer.setSecretBox(new Uint8Array(32), 0, 0);
 
 		if(this.external_packet_send)
-			this.player.ffplayer.pipe(-1);
+			this.player.ffplayer.pipe();
 	}
 
 	create_player(start_time){
@@ -454,6 +456,10 @@ class TrackPlayer extends EventEmitter{
 			throw new Error('Player was destroyed or nothing was playing');
 	}
 
+	hasPlayer(){
+		return this.player != null;
+	}
+
 	isPaused(){
 		this.check_destroyed();
 
@@ -544,7 +550,8 @@ class TrackPlayer extends EventEmitter{
 	stop(){
 		this.start_silence_frames();
 
-		return this.player.stop();
+		if(this.player)
+			return this.player.stop();
 	}
 
 	destroy_player(){

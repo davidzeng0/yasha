@@ -823,13 +823,11 @@ class YoutubeStream extends TrackStream{
 }
 
 class YoutubeStreams extends TrackStreams{
-	constructor(start, playerResponse){
+	from(start, playerResponse){
 		var loudness = 0;
 
 		if(playerResponse.playerConfig?.audioConfig?.loudnessDb)
 			loudness = playerResponse.playerConfig.audioConfig.loudnessDb;
-		super(Math.min(1, Math.pow(10, -loudness / 20)), playerResponse.videoDetails.isLive, start);
-
 		var {formats, adaptiveFormats, expiresInSeconds} = playerResponse.streamingData;
 
 		if(!this.live && formats)
@@ -837,6 +835,9 @@ class YoutubeStreams extends TrackStreams{
 		if(adaptiveFormats)
 			this.extract_streams(adaptiveFormats, true);
 		this.expire = start + parseInt(expiresInSeconds, 10) * 1000;
+		this.set(Math.min(1, Math.pow(10, -loudness / 20)), playerResponse.videoDetails.isLive, start);
+
+		return this;
 	}
 
 	expired(){
@@ -969,6 +970,8 @@ const api = new class YoutubeAPI{
 
 		await this.prefetch(time);
 
+		if(path == 'player')
+			body.playbackContext = {contentPlaybackContext: {signatureTimestamp: this.signature_timestamp}};
 		body.context = this.innertube_context;
 		options.method = 'POST';
 
@@ -1012,10 +1015,6 @@ const api = new class YoutubeAPI{
 		return body;
 	}
 
-	async player_request(id){
-		return await this.api_request('player', {videoId: id, playbackContext: {contentPlaybackContext: {signatureTimestamp: this.signature_timestamp}}})
-	}
-
 	async get(id){
 		var start;
 		var responses;
@@ -1025,7 +1024,7 @@ const api = new class YoutubeAPI{
 
 			responses = [
 				this.api_request('next', {videoId: id}),
-				this.player_request(id)
+				this.api_request('player', {videoId: id})
 			];
 
 			try{
@@ -1059,7 +1058,7 @@ const api = new class YoutubeAPI{
 		try{
 			var author = get_property(response.contents.twoColumnWatchNextResults.results.results.contents, 'videoSecondaryInfoRenderer').owner.videoOwnerRenderer;
 
-			return new YoutubeTrack().from(video_details, author, new YoutubeStreams(start, player_response));
+			return new YoutubeTrack().from(video_details, author, new YoutubeStreams().from(start, player_response));
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
@@ -1073,7 +1072,7 @@ const api = new class YoutubeAPI{
 			start = Date.now();
 
 			try{
-				player_response = await this.player_request(id);
+				player_response = await this.api_request('player', {videoId: id});
 			}catch(e){
 				if(tries)
 					throw e;
@@ -1090,7 +1089,7 @@ const api = new class YoutubeAPI{
 		check_playable(player_response.playabilityStatus);
 
 		try{
-			return new YoutubeStreams(start, player_response);
+			return new YoutubeStreams().from(start, player_response);
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
@@ -1187,12 +1186,12 @@ const api = new class YoutubeAPI{
 		for(var cookie of cookies){
 			cookie = cookie.trim().split('=');
 
-			if(cookie[0] == 'SAPISID'){
+			if(cookie[0] == '__Secure-3PAPISID')
+				sapisid = cookie[1];
+			else if(cookie[0] == 'SAPISID'){
 				sapisid = cookie[1];
 
 				break;
-			}else if(cookie[0] == '__Secure-3PAPISID'){
-				sapisid = cookie[1];
 			}
 		}
 

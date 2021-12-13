@@ -2,6 +2,8 @@
 
 Library exports
 
+**Warning: Extending any of these classes is not recommended, unless you know what you're doing.**
+
 ### index.js
 
 ```js

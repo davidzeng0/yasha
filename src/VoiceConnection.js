@@ -10,7 +10,7 @@ class VoiceConnection extends voice.VoiceConnection{
 		}, {adapterCreator: channel.guild.voiceAdapterCreator});
 
 		this.guild = channel.guild;
-		this.guild.me.voice.connection = this;
+		this.guild.voice_connection = this;
 		this.connect_timeout = null;
 		this.connected = false;
 
@@ -21,12 +21,20 @@ class VoiceConnection extends voice.VoiceConnection{
 			this._state.status = VoiceConnectionStatus.Signalling;
 	}
 
-	rejoin(channelId){
+	rejoin_id(channelId){
 		if(this.joinConfig.channelId != channelId)
 			super.rejoin({channelId});
 	}
 
-	disconnect_reason(reason){
+	rejoin(channel){
+		if(channel.guild.id != this.guild.id)
+			throw new Error('Channel is not in the same guild');
+		if(!channel.joinable)
+			throw new Error(channel.full ? 'Channel is full' : 'No permissions');
+		this.rejoin_id(channel.id);
+	}
+
+	static disconnect_reason(reason){
 		switch(reason){
 			case VoiceConnectionDisconnectReason.AdapterUnavailable:
 				return 'Adapter unavailable';
@@ -53,9 +61,10 @@ class VoiceConnection extends voice.VoiceConnection{
 	onNetworkingError(error){
 		if(this.promise)
 			this.promise_reject(error);
-		else
+		else{
 			this.emit('error', error);
-		this.destroy();
+			this.destroy();
+		}
 	}
 
 	handle_state_change(state){
@@ -79,8 +88,12 @@ class VoiceConnection extends voice.VoiceConnection{
 		if(state.status != this.state.status){
 			if(this.promise)
 				this.handle_state_change(state);
-			else if(state.status == VoiceConnectionStatus.Disconnected)
-				this.await_connection();
+			else if(state.status == VoiceConnectionStatus.Disconnected){
+				if(state.reason == VoiceConnectionDisconnectReason.WebSocketClose)
+					this.await_connection();
+				else
+					this.destroy(state.reason != VoiceConnectionDisconnectReason.AdapterUnavailable);
+			}
 		}
 
 		super.state = state;
@@ -91,14 +104,27 @@ class VoiceConnection extends voice.VoiceConnection{
 	}
 
 	destroy(adapter_available = true){
-		if(adapter_available && this.state.status == VoiceConnectionStatus.Ready){
+		if(this.state.status == VoiceConnectionStatus.Destroyed)
+			return;
+		if(adapter_available){
+			this._state.status = VoiceConnectionStatus.Destroyed;
+
+			/* remove the subscription */
+			this.state = {
+				status: VoiceConnectionStatus.Destroyed,
+				adapter: this.state.adapter
+			};
+
 			this._state.status = VoiceConnectionStatus.Disconnected;
 
 			super.disconnect();
 		}
 
+		if(this.guild.voice_connection == this)
+			this.guild.voice_connection = null;
+		else
+			console.warn('Voice connection mismatch');
 		this.state = {status: VoiceConnectionStatus.Destroyed};
-		this.guild.me.voice.connection = null;
 	}
 
 	disconnect(){
@@ -139,16 +165,12 @@ class VoiceConnection extends voice.VoiceConnection{
 	static async connect(channel, options = {}){
 		if(!channel.joinable)
 			throw new Error(channel.full ? 'Channel is full' : 'No permissions');
-		var voice_state = channel.guild.voiceStates.resolve(channel.guild.me.id);
-
-		if(!voice_state)
-			voice_state = channel.guild.voiceStates._add({user_id: channel.guild.me.id});
-		var connection = voice_state.connection;
+		var connection = channel.guild.voice_connection;
 
 		if(!connection)
 			connection = new VoiceConnection(channel, options);
 		else
-			connection.rejoin(channel.id);
+			connection.rejoin_id(channel.id);
 		if(connection.ready())
 			return connection;
 		connection.await_connection();
@@ -156,6 +178,46 @@ class VoiceConnection extends voice.VoiceConnection{
 		await connection.promise;
 
 		return connection;
+	}
+
+	static get(guild){
+		return guild.voice_connection;
+	}
+
+	static disconnect(guild, options){
+		if(guild.voice_connection){
+			guild.voice_connection.disconnect();
+
+			return;
+		}
+
+		if(!guild.me.voice.channel)
+			return;
+		var {rejoin, disconnect} = voice.VoiceConnection.prototype;
+
+		var dummy = {
+			state: {
+				status: VoiceConnectionStatus.ready,
+				adapter: guild.voiceAdapterCreator({
+					onVoiceServerUpdate(){},
+					onVoiceStateUpdate(){},
+					destroy(){}
+				})
+			},
+
+			joinConfig: {
+				guildId: guild.id,
+				channelId: guild.me.voice.channel.id,
+				...options
+			}
+		};
+
+		if(!rejoin.call(dummy))
+			throw new Error(this.disconnect_reason(VoiceConnectionDisconnectReason.AdapterUnavailable));
+		dummy.state.status = VoiceConnectionStatus.Ready;
+
+		if(!disconnect.call(dummy))
+			throw new Error(this.disconnect_reason(VoiceConnectionDisconnectReason.AdapterUnavailable));
 	}
 }
 

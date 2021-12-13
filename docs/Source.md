@@ -22,11 +22,16 @@ console.log(playlist instanceof TrackPlaylist); // true
 var result = await Source.resolve(input);
 
 if(result instanceof TrackPlaylist){
+	var list = await result.load();
+
+	console.log(`Loaded ${list.length} tracks`);
+
+	// --- manual loading ---
 	// metadata like title, description, and url are only guaranteed to be available if it's first fetch from api
 	// aka offset = 0 or continuation = null or resolved from Source
 	console.log(`Found playlist ${result.title} ${result.url}`);
 
-	var first_track = result.first_track;
+	var first_track = result.firstTrack;
 	var list: Track[] = [];
 
 	if(first_track)
@@ -36,6 +41,7 @@ if(result instanceof TrackPlaylist){
 			for(var i = 0; i < result.length; i++){
 				if(result[i].equals(first_track)){
 					result.splice(i, 1);
+					first_track = null;
 
 					break;
 				}
@@ -121,7 +127,7 @@ enum SourceErrorCode{
 	INVALID_RESPONSE: 2, // invalid response from API (most likely replied with non-json)
 	INTERNAL_ERROR: 3, // internal error
 	NOT_FOUND: 4, // track not found
-	UNPLAYABLE: 5 // track found but not playable,
+	UNPLAYABLE: 5, // track found but not playable
 	NOT_A_TRACK: 6 // url does not lead to a track
 };
 ```

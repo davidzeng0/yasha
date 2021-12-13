@@ -11,7 +11,7 @@ class SpotifyTrack extends Track{
 
 	from(track, artist){
 		this.artists = track.artists.map(artist => artist.name);
-		this.setOwner(track.artists[track.artists.length - 1].name, artist ? TrackImage.from(artist.images) : null);
+		this.setOwner(this.artists.join(', '), artist ? TrackImage.from(artist.images) : null);
 		this.setMetadata(track.id, track.name, track.duration_ms / 1000, TrackImage.from(track.album.images));
 
 		return this;
@@ -70,8 +70,6 @@ const api = (new class SpotifyAPI{
 
 		this.needs_reload = false;
 		this.account_data = {};
-
-		this.reload();
 	}
 
 	async reload(force){
@@ -104,7 +102,10 @@ const api = (new class SpotifyAPI{
 	}
 
 	prefetch(){
-		if(this.reloading) return this.reloading;
+		if(!this.token)
+			this.reload();
+		if(this.reloading)
+			return this.reloading;
 	}
 
 	async api_request(path, options = {}){

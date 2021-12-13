@@ -9,9 +9,13 @@ class SoundcloudTrack extends Track{
 		super('Soundcloud');
 	}
 
-	from(track, streams){
+	from(track){
 		this.permalink_url = track.permalink_url;
 
+		var streams = new SoundcloudStreams().from(track);
+
+		if(streams.length)
+			this.setStreams(streams);
 		return this.setOwner(
 			track.user.username,
 			[{url: track.user.avatar_url, width: 0, height: 0}]
@@ -20,29 +24,7 @@ class SoundcloudTrack extends Track{
 			track.title,
 			track.duration / 1000,
 			TrackImage.from(this.get_thumbnails(track))
-		).setStreams(this.from_streams(track));
-	}
-
-	from_streams(track){
-		var streams = new SoundcloudStreams();
-
-		if(!track.media || !track.media.transcodings)
-			throw new SourceError.UNPLAYABLE('No streams found');
-		for(var stream of track.media.transcodings){
-			var [match, container, codecs] = /audio\/([a-zA-Z0-9]{3,4})(?:;(?:\+| )?codecs="(.*?)")?/.exec(stream.format.mime_type);
-
-			if(container == 'mpeg' && !codecs)
-				codecs = 'mp3';
-			streams.push(
-				new SoundcloudStream(stream.url)
-					.setDuration(stream.duration / 1000)
-					.setBitrate(-1)
-					.setTracks(false, true)
-					.setMetadata(container, codecs)
-			);
-		}
-
-		return streams;
+		);
 	}
 
 	get_thumbnails(track){
@@ -119,10 +101,8 @@ class SoundcloudResults extends TrackResults{
 
 class SoundcloudPlaylist extends TrackPlaylist{
 	from(list){
-		if(list){
-			this.permalink_url = list.permalink_url;
-			this.setMetadata(list.title, list.description);
-		}
+		this.permalink_url = list.permalink_url;
+		this.setMetadata(list.title, list.description);
 
 		return this;
 	}
@@ -151,21 +131,46 @@ class SoundcloudStream extends TrackStream{
 	}
 
 	async getUrl(){
-		return (await api.request(this.stream_url)).url;
+		var body = await api.request(this.stream_url);
+
+		if(body && body.url)
+			return body.url;
+		throw new SourceError.INTERNAL_ERROR(null, new Error('No stream url found'));
 	}
 }
 
 class SoundcloudStreams extends TrackStreams{
-	constructor(){
-		super(1, false, Date.now());
+	from(track){
+		if(track.media && track.media.transcodings){
+			this.set(1, false, Date.now());
+			this.extract_streams(track.media.transcodings);
+		}
+
+		return this;
+	}
+
+	extract_streams(streams){
+		for(var stream of streams){
+			var [match, container, codecs] = /audio\/([a-zA-Z0-9]{3,4})(?:;(?:\+| )?codecs="(.*?)")?/.exec(stream.format.mime_type);
+
+			if(container == 'mpeg' && !codecs)
+				codecs = 'mp3';
+			this.push(
+				new SoundcloudStream(stream.url)
+					.setDuration(stream.duration / 1000)
+					.setBitrate(-1)
+					.setTracks(false, true)
+					.setMetadata(container, codecs)
+			);
+		}
 	}
 
 	expired(){
 		return false;
 	}
 
-	maybe_expired(){
-		return Date.now() - this.time > 5 * 60 * 1000;
+	maybeExpired(){
+		return false;
 	}
 }
 
@@ -192,7 +197,8 @@ var api = new class SoundcloudAPI{
 	async prefetch(){
 		if(!this.client_id)
 			this.reload();
-		if(this.reloading) await this.reloading;
+		if(this.reloading)
+			await this.reloading;
 	}
 
 	async load(){
@@ -265,22 +271,26 @@ var api = new class SoundcloudAPI{
 
 	async resolve_playlist(list, offset = 0, limit){
 		var unresolved_index = -1;
-		var tracks = new SoundcloudPlaylist().from(offset == 0 ? list : null);
+		var tracks = new SoundcloudPlaylist();
 
+		if(!list || typeof list != 'object' || !(list.tracks instanceof Array))
+			throw new SourceError.INTERNAL_ERROR(null, new Error('Invalid list'));
+		if(offset == 0)
+			tracks.from(list);
 		if(offset >= list.tracks.length)
 			return null;
-		for(var i = offset; i < list.tracks.length; i++){
-			if(list.tracks[i].streamable === undefined){
-				unresolved_index = i;
+		try{
+			for(var i = offset; i < list.tracks.length; i++){
+				if(list.tracks[i].streamable === undefined){
+					unresolved_index = i;
 
-				break;
-			}
+					break;
+				}
 
-			try{
 				tracks.push(new SoundcloudTrack().from(list.tracks[i]));
-			}catch(e){
-				throw new SourceError.INTERNAL_ERROR(null, e);
 			}
+		}catch(e){
+			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
 
 		if(!limit || limit + offset > list.tracks.length)
@@ -291,9 +301,9 @@ var api = new class SoundcloudAPI{
 			var ids = list.tracks.slice(unresolved_index, unresolved_index + 50);
 			var body = await this.api_request('tracks', {ids: ids.map(track => track.id).join(',')});
 
-			if(!body.length)
-				break;
 			try{
+				if(!body.length)
+					break;
 				for(var track of body)
 					tracks.push(new SoundcloudTrack().from(track));
 			}catch(e){
@@ -313,7 +323,7 @@ var api = new class SoundcloudAPI{
 
 		if(body.kind == 'track'){
 			try{
-				return new SoundcloudTrack().from(body, streams);
+				return new SoundcloudTrack().from(body);
 			}catch(e){
 				throw new SourceError.INTERNAL_ERROR(null, e);
 			}
@@ -327,25 +337,33 @@ var api = new class SoundcloudAPI{
 	async get(id){
 		var body = await this.api_request('tracks/' + id);
 
-		var result, streams;
+		var track;
 
 		try{
-			result = new SoundcloudTrack().from(body);
+			track = new SoundcloudTrack().from(body);
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
 
-		return result;
+		if(!track.streams)
+			throw new SourceError.UNPLAYABLE('No streams found');
+		return track;
 	}
 
 	async get_streams(id){
 		var body = await this.api_request('tracks/' + id);
 
+		var streams;
+
 		try{
-			return new SoundcloudTrack().from_streams(body);
+			streams = new SoundcloudStreams().from(body);
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
+
+		if(!streams.length)
+			throw new SourceError.UNPLAYABLE('No streams found');
+		return streams;
 	}
 
 	async search(query, offset, limit = 20){
