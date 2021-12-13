@@ -59,12 +59,14 @@ class TrackResults extends Array{
 class TrackPlaylist extends TrackResults{
 	title: string | null; // playlist title
 	description: string | null; // playlist description
-	first_track: Track | null; // if a playlist and track are queried at the same time, this is the track
+	firstTrack: Track | null; // if a playlist and track are queried at the same time, this is the track
 
 	get url(): string | null; // url to playlist
 
 	// metadata like title, description, and url are only guaranteed to be available if it's first fetch from api
 	// aka offset = 0 or continuation = null
+
+	async load(): Promise<TrackPlaylist>; // load the rest of the playlist
 
 	async next(): Promise<TrackPlaylist | null>; // get next page of results
 }

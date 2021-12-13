@@ -127,13 +127,53 @@ class TrackPlaylist extends TrackResults{
 	}
 
 	setFirstTrack(track){
-		this.first_track = track;
+		this.firstTrack = track;
 
 		return this;
 	}
 
 	async next(){
 		return null;
+	}
+
+	async load(){
+		var result = null;
+		var first_track = this.firstTrack;
+
+		if(first_track){
+			for(var i = 0; i < this.length; i++){
+				if(this[i].equals(first_track)){
+					first_track = null;
+
+					if(i != 0){
+						this.splice(i, 1);
+						this.unshift(first_track);
+					}
+
+					break;
+				}
+			}
+		}
+
+		result = await this.next();
+
+		while(result && result.length){
+			if(first_track){
+				for(var i = 0; i < result.length; i++)
+					if(result[i].equals(first_track)){
+						result.splice(i, 1);
+						first_track = null;
+
+						break;
+					}
+			}
+
+			this.push(...result);
+
+			result = await result.next();
+		}
+
+		return this;
 	}
 
 	get url(){
