@@ -4,7 +4,10 @@ Audio Player interface for Discord.js
 *Sange and Yasha, when attuned by the moonlight and used together, become a very powerful combination.*
 
 ### prerequisites
-See [sange](https://github.com/ilikdoge/sange) dependencies
+Only compiles on Linux or WSL2+.
+
+1. See [sange](https://github.com/ilikdoge/sange) dependencies
+2. libsodium <code>sudo apt install libsodium-dev</code>
 
 ### install
 ```bash

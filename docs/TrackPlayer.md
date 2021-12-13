@@ -17,6 +17,21 @@ player.play(track);
 player.start();
 ```
 
+Options
+```js
+class TrackPlayerOptions{
+	normalize_volume: boolean // On track streams that have a volume parameter, automatically set the volume to that
+
+	// NOTE: These features are highly experimental and may crash the bot!
+
+	external_encrypt: boolean // Use native code to encrypt audio packets before sending them to the voice connection. Only allows one voice connection subscription at a time.
+
+	external_packet_send: boolean // Use native code to send audio packets to the voice connection. external_encrypt must be enabled
+}
+
+var player = new TrackPlayer(new TrackPlayerOptions());
+```
+
 #### Events
 
 Ready
@@ -59,7 +74,11 @@ player.on('finish', () => {
 Error
 ```js
 player.on('error', (error: Error) => {
-	console.log(`Error playing the track: ${error.message}`);
+	if(error instanceof SourceError){
+		console.log(`Error playing the track: ${error.message}`);
+	}else{
+		console.log(`Error playing the track: Internal Player Error`);
+	}
 
 	if(nextTrack){
 		// continue to the next track
@@ -84,7 +103,14 @@ Start playing
 ```js
 player.start(): void;
 ```
+Has player
 
+TrackPlayer creates an internal player each time a new track is played and destroys it upon a call to cleanup() or a call to destroy().
+This function returns true if the player has a non-destroyed internal player.
+If this function returns true, functions such as setVolume, isPaused, isCodecCopy, etc... can be used.
+```js
+player.hasPlayer(): boolean;
+```
 
 Check if the player is paused
 ```js
@@ -166,8 +192,18 @@ player.start(): void
 ```
 
 Stop the player
+
+Starting the player again will restart from the very beginning and re-read stream metadata
 ```js
 player.stop(): void
+```
+
+IsCodecCopy
+
+Is true if the player is using minimal CPU by piping the source audio
+Is false if the source codec does not match the output codec or filters are on
+```js
+player.isCodecCopy(): boolean
 ```
 
 Clean up the internal player

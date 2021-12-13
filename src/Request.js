@@ -1,12 +1,12 @@
 const SourceError = require('./SourceError');
 
 const httpsAgent = new (require('https').Agent)({keepAlive: true});
-const fetch_promise = import('node-fetch');
+const nfetch = require('node-fetch');
 
 async function fetch(url, opts = {}){
 	opts.agent = httpsAgent;
 
-	return (await fetch_promise).default(url, opts);
+	return nfetch(url, opts);
 }
 
 module.exports = new class{
