@@ -37,10 +37,11 @@ VoiceConnection.get(guild: Guild): VoiceConnection
 Disconnect
 
 Disconnect any voice channel in the guild
+Returns true if a voice connection was disconnected
 ```js
 const {Guild} = require('discord.js');
 
-VoiceConnection.disconnect(guild: Guild): void
+VoiceConnection.disconnect(guild: Guild): boolean
 ```
 
 Subscribe (see @discordjs/voice subscribe documentation)

@@ -282,13 +282,16 @@ const api = (new class SpotifyAPI{
 	}
 
 	async list(type, id, limit){
-		var list = [];
+		var list = null;
 		var offset = 0;
 
 		do{
 			var result = await this.list_once(type, id, offset);
 
-			list = list.concat(result);
+			if(!list)
+				list = result;
+			else
+				list = list.concat(result);
 			offset = result.start;
 		}while(result.id && (!limit || list.length < limit));
 

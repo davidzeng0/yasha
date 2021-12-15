@@ -666,6 +666,8 @@ function check_playable(st){
 		case 'unplayable':
 		case 'login_required':
 			throw new SourceError.UNPLAYABLE(reason || status);
+		case 'content_check_required':
+			return 'content_check_required';
 	}
 }
 
@@ -895,6 +897,7 @@ class YoutubeStreams extends TrackStreams{
 /* api requests and headers to youtube.com */
 const api = new class YoutubeAPI{
 	constructor(){
+		this.headers = {};
 		this.player_js = null;
 		this.innertube_context = null;
 		this.innertube_key = null;
@@ -933,7 +936,7 @@ const api = new class YoutubeAPI{
 	}
 
 	async load(){
-		var {body} = await Request.get('https://www.youtube.com/');
+		var {body} = await Request.get('https://www.youtube.com/', this.cookie ? {headers: {cookie: this.cookie}} : {});
 
 		var state = /ytcfg\.set\((\{[^]+?\})\);/.exec(body);
 
@@ -945,6 +948,21 @@ const api = new class YoutubeAPI{
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Could not parse state object'));
 		}
 
+		this.headers['x-youtube-page-label'] = state.PAGE_BUILD_LABEL;
+		this.headers['x-youtube-client-version'] = state.INNERTUBE_CONTEXT_CLIENT_VERSION;
+		this.headers['x-youtube-sts'] = state.STS;
+		this.headers['x-youtube-client-name'] = state.INNERTUBE_CONTEXT_CLIENT_NAME;
+		this.headers['x-youtube-identity-token'] = state.ID_TOKEN;
+
+		if(!state.ID_TOKEN){
+			if(this.cookie && this.sapisid)
+				throw new SourceError.INTERNAL_ERROR(null, new Error('Invalid Cookie'));
+			delete this.headers['x-youtube-identity-token'];
+		}
+
+		for(var key in this.headers)
+			if(!this.headers[key])
+				throw new SourceError.INTERNAL_ERROR(null, new Error('Missing state fields'));
 		this.signature_timestamp = state.STS;
 		this.innertube_key = state.INNERTUBE_API_KEY;
 		this.innertube_context = state.INNERTUBE_CONTEXT;
@@ -957,7 +975,7 @@ const api = new class YoutubeAPI{
 	}
 
 	async prefetch(now = Date.now()){
-		if(now - this.last_reload > this.reload_interval)
+		if(!this.reloading && now - this.last_reload > this.reload_interval)
 			this.reload();
 		if(this.reloading)
 			await this.reloading;
@@ -1015,6 +1033,60 @@ const api = new class YoutubeAPI{
 		return body;
 	}
 
+	async pbj_request(id, bpctr){
+		await this.prefetch();
+
+		var url, headers;
+
+		if(bpctr)
+			url = `https://www.youtube.com/watch?v=${id}&bpctr=${Math.floor(Date.now() / 1000) + 1800}&pbj=prefetch&frags=pl`;
+		else
+			url = `https://www.youtube.com/watch?v=${id}&pbj=prefetch&frags=pl`;
+		for(var tries = 0; tries < 2; tries++){
+			if(this.cookie)
+				headers = {...this.headers, cookie: this.cookie};
+			else
+				headers = this.headers;
+			var {body} = await Request.get(url, {headers});
+
+			try{
+				if(body.startsWith(")]}'"))
+					body = body.substring(4);
+				body = JSON.parse(body);
+			}catch(e){
+				if(tries)
+					throw new SourceError.INVALID_RESPONSE(null, e);
+				body = {reload: true};
+			}
+
+			if(body.reload){
+				if(tries)
+					throw new SourceError.INTERNAL_ERROR(null, new Error('Bad state'));
+				this.reload();
+
+				await this.prefetch();
+
+				continue;
+			}
+
+			break;
+		}
+
+		body = get_property(body, 'playerResponse');
+
+		if(!body)
+			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing data'));
+		if(check_playable(body.playabilityStatus) == 'content_check_required')
+			throw new SourceError.INTERNAL_ERROR(null, new Error('Failed to complete content check'));
+		return body;
+	}
+
+	async pass_content_check(player_response){
+		if(!player_response.videoDetails || !player_response.videoDetails.videoId)
+			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing videoId'));
+		return await this.pbj_request(player_response.videoDetails.videoId, true);
+	}
+
 	async get(id){
 		var start;
 		var responses;
@@ -1051,7 +1123,8 @@ const api = new class YoutubeAPI{
 
 		if(!response || !player_response)
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing data'));
-		check_playable(player_response.playabilityStatus);
+		if(check_playable(player_response.playabilityStatus) == 'content_check_required')
+			player_response = await this.pass_content_check(player_response);
 
 		var video_details = player_response.videoDetails;
 
@@ -1086,8 +1159,8 @@ const api = new class YoutubeAPI{
 
 		if(!player_response)
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing data'));
-		check_playable(player_response.playabilityStatus);
-
+		if(check_playable(player_response.playabilityStatus) == 'content_check_required')
+			player_response = await this.pass_content_check(player_response);
 		try{
 			return new YoutubeStreams().from(start, player_response);
 		}catch(e){
@@ -1136,13 +1209,16 @@ const api = new class YoutubeAPI{
 	}
 
 	async playlist(id, limit){
-		var list = [];
+		var list = null;
 		var continuation = null;
 
 		do{
 			var result = await this.playlist_once(id, continuation);
 
-			list = list.concat(result);
+			if(!list)
+				list = result;
+			else
+				list = list.concat(result);
 			continuation = result.continuation;
 		}while(continuation && (!limit || list.length < limit));
 
@@ -1195,6 +1271,8 @@ const api = new class YoutubeAPI{
 			}
 		}
 
+		if(!sapisid)
+			throw new SourceError.INTERNAL_ERROR('Invalid Cookie');
 		this.sapisid = sapisid;
 		this.cookie = cookiestr;
 		this.reload(true);
