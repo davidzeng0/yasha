@@ -11,7 +11,7 @@ const audio_nonce = Buffer.alloc(24);
 const audio_buffer = Buffer.alloc(8192);
 const audio_output = Buffer.alloc(8192);
 
-const silence = Buffer.from([0xfc, 0xff, 0xfe]);
+const silence = Buffer.from([0xf8, 0xff, 0xfe]);
 
 /* these bytes never change */
 audio_buffer[0] = 0x80;
