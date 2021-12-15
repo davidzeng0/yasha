@@ -100,15 +100,18 @@ const youtube = new class Youtube extends APISource{
 			list = this.api.playlist_once(match.list);
 		var result = await Promise.allSettled([track, list]);
 
-		if(result[0].status == 'rejected' && result[1].status == 'rejected')
-			throw result[0].reason;
-		if(match.list && result[1].status == 'fulfilled'){
-			if(result[0].status == 'fulfilled')
-				result[1].value.setFirstTrack(result[0].value);
-			return result[1].value;
+		track = result[0].value;
+		list = result[1].value;
+
+		if(!track && !list)
+			throw match.id ? result[0].reason : result[1].reason;
+		if(list){
+			if(track)
+				list.setFirstTrack(track);
+			return list;
 		}
 
-		return result[0].value;
+		return track;
 	}
 
 	async weak_resolve(match){

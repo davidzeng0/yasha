@@ -188,11 +188,11 @@ class VoiceConnection extends voice.VoiceConnection{
 		if(guild.voice_connection){
 			guild.voice_connection.disconnect();
 
-			return;
+			return true;
 		}
 
 		if(!guild.me.voice.channel)
-			return;
+			return false;
 		var {rejoin, disconnect} = voice.VoiceConnection.prototype;
 
 		var dummy = {
@@ -218,6 +218,7 @@ class VoiceConnection extends voice.VoiceConnection{
 
 		if(!disconnect.call(dummy))
 			throw new Error(this.disconnect_reason(VoiceConnectionDisconnectReason.AdapterUnavailable));
+		return true;
 	}
 }
 
