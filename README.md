@@ -7,10 +7,15 @@ Audio Player interface for Discord.js
 Only compiles on Linux or WSL2+.
 
 1. See [sange](https://github.com/ilikdoge/sange) dependencies
-2. libsodium <code>sudo apt install libsodium-dev</code>
+2. libsodium
+3. libtool
 
 ### install
 ```bash
+# dependencies
+apt install libsodium-dev libtool
+
+# install
 npm i git://github.com/ilikdoge/yasha.git
 ```
 
