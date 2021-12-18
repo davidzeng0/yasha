@@ -74,7 +74,7 @@ class VoiceConnection extends voice.VoiceConnection{
 
 				break;
 			case VoiceConnectionStatus.Disconnected:
-				this.promise_reject(new Error(this.disconnect_reason(state.reason)));
+				this.promise_reject(new Error(VoiceConnection.disconnect_reason(state.reason)));
 
 				break;
 			case VoiceConnectionStatus.Ready:
