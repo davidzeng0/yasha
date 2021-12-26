@@ -1256,6 +1256,14 @@ const api = new class YoutubeAPI{
 	}
 
 	set_cookie(cookiestr){
+		if(!cookiestr){
+			this.cookie = '';
+			this.sapisid = '';
+			delete this.headers['x-youtube-identity-token'];
+
+			return;
+		}
+
 		var cookies = cookiestr.split(';');
 		var sapisid = null;
 
