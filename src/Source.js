@@ -231,6 +231,26 @@ const spotify = new class Spotify extends APISource{
 	}
 }
 
+const file = new class File extends APISource{
+	constructor(){
+		super('File');
+	}
+
+	resolve(content){
+		var url;
+
+		try{
+			url = new URL(content);
+		}catch(e){
+			return null;
+		}
+
+		if(url.protocol == 'http:' || url.protocol == 'https:')
+			return this.api.resolve(content);
+		return null;
+	}
+}
+
 class Source{
 	static resolve(input){
 		var sources = [youtube, soundcloud, spotify];
@@ -250,5 +270,6 @@ Source.Error = SourceError;
 Source.Youtube = youtube;
 Source.Soundcloud = soundcloud;
 Source.Spotify = spotify;
+Source.File = file;
 
 module.exports = Source;
