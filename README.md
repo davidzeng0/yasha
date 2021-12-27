@@ -13,7 +13,7 @@ Only compiles on Linux or WSL2+.
 ### install
 ```bash
 # dependencies
-apt install libsodium-dev libtool
+sudo apt install cmake libsodium-dev libtool libavutil-dev ffmpeg libavformat-dev libopus-dev libuv1-dev 
 
 # install
 npm i git://github.com/ilikdoge/yasha.git
