@@ -6,7 +6,7 @@ Audio Player interface for Discord.js
 ### prerequisites
 Only compiles on Linux or WSL2+.
 
-1. See [sange](https://github.com/ilikdoge/sange) dependencies
+1. Install [sange](https://github.com/ilikdoge/sange) dependencies
 2. libsodium
 3. libtool
 
