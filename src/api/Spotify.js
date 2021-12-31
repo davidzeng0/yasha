@@ -151,34 +151,57 @@ const api = (new class SpotifyAPI{
 		return body;
 	}
 
-	async youtube_search(track){
-		var query = track.author + ' ' + track.title;
-		var results = await Youtube.Music.search(query);
+	artist_match(a, b){
+		for(var artist of a.artists)
+			if(b.artists.includes(artist))
+				return true;
+		return false;
+	}
 
-		if(results.length){
-			var result = results[0];
+	title_match(a, b){
+		a = a.title.toLowerCase();
+		b = b.title.toLowerCase();
 
-			if(track.artists.includes(result.author))
-				return result;
-			if(track.title.includes(result.title) || result.title.includes(track.title))
-				return result;
+		return a.includes(b) || b.includes(a);
+	}
+
+	best_result(results, track){
+		var durmatch = null;
+
+		if(results.topResult){
+			if(results.songs){
+				var result = results.songs[0];
+
+				if(this.artist_match(track, result) && this.title_match(track, result))
+					return result;
+			}
+
+			return results.topResult;
 		}
 
 		for(var result of results){
-			if(track.artists.includes(result.author))
+			if(this.artist_match(track, result))
 				return result;
-			if(result.title == track.title)
+			if(this.title_match(track, result))
 				return result;
+			if(!durmatch && track.duration != -1 && result.duration != -1 && Math.abs(result.duration - track.duration) < 5000)
+				durmatch = result;
 		}
 
-		if(track.duration != -1){
-			for(var result of results){
-				if(result.duration != -1 && Math.abs(result.duration - track.duration) < 5000)
-					return result;
-			}
-		}
-
+		if(durmatch)
+			return durmatch;
 		return result.length ? results[0] : null;
+	}
+
+	async youtube_search(track){
+		var query = track.artists.join(' ') + ' ' + track.title;
+		var results = await Youtube.Music.search(query);
+
+		try{
+			return this.best_result(results, track);
+		}catch(e){
+			throw new SourceError.INTERNAL_ERROR(null, e);
+		}
 	}
 
 	async youtube_lookup(track){

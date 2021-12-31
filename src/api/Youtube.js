@@ -894,6 +894,15 @@ class YoutubeStreams extends TrackStreams{
 	}
 }
 
+function set_language(context){
+	try{
+		context.client.gl = 'US';
+		context.client.hl = 'en';
+	}catch(e){
+		throw new SourceError.INTERNAL_ERROR(null, new Error('Could not set language'));
+	}
+}
+
 /* api requests and headers to youtube.com */
 const api = new class YoutubeAPI{
 	constructor(){
@@ -935,8 +944,8 @@ const api = new class YoutubeAPI{
 		}while(this.needs_reload);
 	}
 
-	async load(){
-		var {body} = await Request.get('https://www.youtube.com/', this.cookie ? {headers: {cookie: this.cookie}} : {});
+	async load_state(origin = 'www', cookie = this.cookie, headers = {}){
+		var {body} = await Request.get(`https://${origin}.youtube.com/`, cookie ? {headers: {cookie, ...headers}} : {headers});
 
 		var state = /ytcfg\.set\((\{[^]+?\})\);/.exec(body);
 
@@ -947,6 +956,12 @@ const api = new class YoutubeAPI{
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Could not parse state object'));
 		}
+
+		return state;
+	}
+
+	async load(){
+		var state = await this.load_state(), body;
 
 		this.headers['x-youtube-page-label'] = state.PAGE_BUILD_LABEL;
 		this.headers['x-youtube-client-version'] = state.INNERTUBE_CONTEXT_CLIENT_VERSION;
@@ -967,6 +982,8 @@ const api = new class YoutubeAPI{
 		this.innertube_key = state.INNERTUBE_API_KEY;
 		this.innertube_context = state.INNERTUBE_CONTEXT;
 		this.player_js = state.PLAYER_JS_URL;
+
+		set_language(this.innertube_context);
 
 		if(!this.signature_timestamp || !this.innertube_key || !this.innertube_context || !this.player_js)
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing state fields'));
@@ -1292,21 +1309,77 @@ class YoutubeMusicTrack extends YoutubeTrack{
 		super('Youtube');
 	}
 
+	parse_metadata(has_type, metadata){
+		var type, artists = [], duration;
+		var found = has_type ? 0 : 1;
+
+		for(var i = 0; i < metadata.length; i++){
+			var text = metadata[i].text;
+
+			if(text == ' • '){
+				found++;
+
+				continue;
+			}
+
+			switch(found){
+				case 0: /* type */
+					type = text;
+
+					break;
+				case 1: /* artists */
+					artists.push(text);
+
+					if(metadata[i + 1].text != ' • ')
+						i++;
+					break;
+				case 2: /* album */
+					break;
+				case 3: /* duration */
+					duration = parse_timestamp(text);
+
+					break;
+			}
+		}
+
+		return {type, artists, duration};
+	}
+
 	from_search(track){
 		if(!track.playlistItemData)
 			return;
-		var title = track.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text;
-		var metadata = track.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text;
+		var {artists, duration} = this.parse_metadata(false, track.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs);
 
-		var owner = metadata.runs[0];
-		var duration = metadata.runs.length > 1 ? parse_timestamp(metadata.runs[metadata.runs.length - 1].text) : -1;
+		this.artists = artists;
 
 		return this.setOwner(
-			owner.text,
+			artists.join(', '),
 			null
 		).setMetadata(
 			track.playlistItemData.videoId,
-			text(title),
+			text(track.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text),
+			duration,
+			TrackImage.from(track.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails),
+		);
+	}
+
+	from_section(track){
+		if(!track.playlistItemData)
+			return;
+		var {type, artists, duration} = this.parse_metadata(true, track.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs);
+
+		type = type.toLowerCase();
+
+		if(type != 'video' && type != 'song')
+			return;
+		this.artists = artists;
+
+		return this.setOwner(
+			artists.join(', '),
+			null
+		).setMetadata(
+			track.playlistItemData.videoId,
+			text(track.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text),
 			duration,
 			TrackImage.from(track.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails),
 		);
@@ -1315,6 +1388,55 @@ class YoutubeMusicTrack extends YoutubeTrack{
 
 class YoutubeMusicResults extends TrackResults{
 	process(body){
+		if(body instanceof Array){
+			for(var section of body)
+				if(section.musicShelfRenderer)
+					this.process_section(section.musicShelfRenderer);
+			return;
+		}
+
+		this.process_once(body);
+	}
+
+	process_section(section){
+		var section_name = text(section.title);
+
+		if(!section_name)
+			return;
+		section_name = section_name.toLowerCase();
+
+		switch(section_name){
+			case 'songs':
+				if(section.bottomEndpoint)
+					this.set_browse(section.bottomEndpoint.searchEndpoint.query, section.bottomEndpoint.searchEndpoint.params);
+			case 'top result':
+			case 'videos':
+				var tracks = this.from_section(section.contents);
+
+				if(section_name == 'top result' && tracks.length)
+					this.topResult = tracks[0];
+				if(section_name == 'songs')
+					this.songs = tracks;
+				this.push(...tracks);
+
+				break;
+		}
+	}
+
+	from_section(list){
+		var tracks = [];
+
+		for(var video of list)
+			if(video.musicResponsiveListItemRenderer){
+				video = new YoutubeMusicTrack().from_section(video.musicResponsiveListItemRenderer);
+
+				if(video)
+					tracks.push(video);
+			}
+		return tracks;
+	}
+
+	process_once(body){
 		this.extract_tracks(body.contents);
 
 		if(body.continuations && body.continuations.length)
@@ -1323,15 +1445,26 @@ class YoutubeMusicResults extends TrackResults{
 
 	extract_tracks(list){
 		for(var video of list)
-			if(video.musicResponsiveListItemRenderer)
-				this.push(new YoutubeMusicTrack().from_search(video.musicResponsiveListItemRenderer));
+			if(video.musicResponsiveListItemRenderer){
+				video = new YoutubeMusicTrack().from_search(video.musicResponsiveListItemRenderer);
+
+				if(video)
+					this.push(video);
+			}
 	}
 
 	set_continuation(cont){
 		this.continuation = cont;
 	}
 
+	set_browse(query, params){
+		this.browse = params;
+		this.query = query;
+	}
+
 	async next(){
+		if(this.browse)
+			return await music.search(this.query, null, this.browse);
 		if(this.continuation)
 			return await music.search(null, this.continuation);
 		return null;
@@ -1373,20 +1506,12 @@ var music = new class YoutubeMusic{
 	}
 
 	async load(){
-		var {body} = await Request.get('https://music.youtube.com/', {headers: {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36'}});
-
-		var state = /ytcfg\.set\((\{[^]+?\})\);/.exec(body);
-
-		if(!state)
-			throw new SourceError.INTERNAL_ERROR(null, new Error('Could not find state object'));
-		try{
-			state = JSON.parse(state[1]);
-		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, new Error('Could not parse state object'));
-		}
+		var state = await api.load_state('music', null, {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36'});
 
 		this.innertube_key = state.INNERTUBE_API_KEY;
 		this.innertube_context = state.INNERTUBE_CONTEXT;
+
+		set_language(this.innertube_context);
 
 		if(!this.innertube_key || !this.innertube_context)
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing state fields'));
@@ -1411,13 +1536,13 @@ var music = new class YoutubeMusic{
 		return api.api_request.call(this, path, body, query, 'music');
 	}
 
-	async search(search, continuation){
+	async search(search, continuation, params){
 		var query, body;
 
 		if(continuation)
 			query = '&continuation=' + continuation + '&type=next';
 		else
-			body = {query: search, params: 'EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D'};
+			body = {query: search, params};
 		body = await this.api_request('search', body, query);
 
 		if(continuation){
@@ -1430,10 +1555,13 @@ var music = new class YoutubeMusic{
 			}
 		}else{
 			try{
-				body = get_property(body.contents.tabbedSearchResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents, 'musicShelfRenderer');
+				body = body.contents.tabbedSearchResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents;
 			}catch(e){
 				throw new SourceError.INTERNAL_ERROR(null, e);
 			}
+
+			if(params)
+				body = get_property(body, 'musicShelfRenderer');
 		}
 
 		var results = new YoutubeMusicResults();
