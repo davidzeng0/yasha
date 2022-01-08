@@ -13,6 +13,7 @@ class SpotifyTrack extends Track{
 		this.artists = track.artists.map(artist => artist.name);
 		this.setOwner(this.artists.join(', '), artist ? TrackImage.from(artist.images) : null);
 		this.setMetadata(track.id, track.name, track.duration_ms / 1000, TrackImage.from(track.album.images));
+		this.explicit = track.explicit;
 
 		return this;
 	}
@@ -165,10 +166,12 @@ const api = (new class SpotifyAPI{
 		return a.includes(b) || b.includes(a);
 	}
 
-	best_result(results, track){
+	best_result(results, track, aggr = false, dur = true){
 		var durmatch = null;
 
 		if(results.topResult){
+			if(results.topResult.type == 'song')
+				return results.topResult;
 			if(results.songs){
 				var result = results.songs[0];
 
@@ -180,22 +183,45 @@ const api = (new class SpotifyAPI{
 		}
 
 		for(var result of results){
-			if(this.artist_match(track, result))
+			if(this.artist_match(track, result) && this.title_match(track, result))
 				return result;
-			if(this.title_match(track, result))
-				return result;
-			if(!durmatch && track.duration != -1 && result.duration != -1 && Math.abs(result.duration - track.duration) < 5000)
+			if(!durmatch && track.duration != -1 && result.duration != -1 && Math.abs(result.duration - track.duration) < 5)
 				durmatch = result;
 		}
 
+		if(aggr)
+			return null;
 		if(durmatch)
 			return durmatch;
-		return result.length ? results[0] : null;
+		if(!dur)
+			return null;
+		return results.length ? results[0] : null;
 	}
 
 	async youtube_search(track){
 		var query = track.artists.join(' ') + ' ' + track.title;
 		var results = await Youtube.Music.search(query);
+		var expmatch = results.filter((t) => t.explicit == track.explicit);
+		var match = null;
+
+		if(results.topResult && results.topResult.explicit == track.explicit)
+			expmatch.topResult = results.topResult;
+		if(results.songs)
+			expmatch.songs = results.songs.filter((t) => t.explicit == track.explicit);
+		try{
+			match = this.best_result(expmatch, track, true);
+
+			if(match)
+				return match;
+			match = this.best_result(results, track, false, false);
+
+			if(match)
+				return match;
+		}catch(e){
+			throw new SourceError.INTERNAL_ERROR(null, e);
+		}
+
+		results = await results.next();
 
 		try{
 			return this.best_result(results, track);
