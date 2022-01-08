@@ -1345,12 +1345,33 @@ class YoutubeMusicTrack extends YoutubeTrack{
 		return {type, artists, duration};
 	}
 
-	from_search(track){
+	from_search(track, has_type){
 		if(!track.playlistItemData)
 			return;
-		var {artists, duration} = this.parse_metadata(false, track.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs);
+		var {type, artists, duration} = this.parse_metadata(has_type, track.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs);
 
+		if(has_type){
+			type = type.toLowerCase();
+
+			if(type != 'video' && type != 'song')
+				return;
+			this.type = type;
+		}else{
+			this.type = 'song';
+		}
+
+		this.explicit = false;
 		this.artists = artists;
+
+		if(track.badges){
+			for(var badge of track.badges){
+				if(badge.musicInlineBadgeRenderer?.icon?.iconType == 'MUSIC_EXPLICIT_BADGE'){
+					this.explicit = true;
+
+					break;
+				}
+			}
+		}
 
 		return this.setOwner(
 			artists.join(', '),
@@ -1364,25 +1385,7 @@ class YoutubeMusicTrack extends YoutubeTrack{
 	}
 
 	from_section(track){
-		if(!track.playlistItemData)
-			return;
-		var {type, artists, duration} = this.parse_metadata(true, track.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs);
-
-		type = type.toLowerCase();
-
-		if(type != 'video' && type != 'song')
-			return;
-		this.artists = artists;
-
-		return this.setOwner(
-			artists.join(', '),
-			null
-		).setMetadata(
-			track.playlistItemData.videoId,
-			text(track.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text),
-			duration,
-			TrackImage.from(track.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails),
-		);
+		return this.from_search(track, true);
 	}
 }
 
