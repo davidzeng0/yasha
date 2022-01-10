@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+message playlist{
+	message playlist_continuation{
+		string vlid = 2;
+		string params = 3;
+		string id = 35;
+	}
+
+	playlist_continuation continuation = 80226972;
+}
+
+message playlist_params{
+	uint32 page = 1;
+	string offset = 15;
+}
+
+message playlist_offset{
+	uint32 offset = 1;
+}
+
+enum search_sort{
+	RELEVANCE = 0;
+	RATING = 1;
+	UPLOAD_DATE = 2;
+	VIEW_COUNT = 3;
+}
+
+message search_filters{
+	enum Time{
+		ALL_TIME = 0;
+		HOUR = 1;
+		DAY = 2;
+		WEEK = 3;
+		MONTH = 4;
+		YEAR = 5;
+	}
+
+	enum Type{
+		ANY = 0;
+		VIDEO = 1;
+		CHANNEL = 2;
+		PLAYLIST = 3;
+		MOVIE = 4;
+	}
+
+	enum Duration{
+		ALL = 0;
+		SHORT = 1; // < 4 minutes
+		LONG = 2; // > 20 minutes
+		MEDIUM = 3; // 4 - 20 minutes
+	}
+
+	Time time = 1;
+	Type type = 2;
+	Duration duration = 3;
+	bool is_hd = 4;
+	bool has_cc = 5;
+	bool creative_commons = 6;
+	bool is_3d = 7;
+	bool is_live = 8;
+	bool purchased = 9;
+	bool is_4k = 14;
+	bool is_360 = 15;
+	bool has_location = 23;
+	bool is_hdr = 25;
+	bool is_vr180 = 26;
+}
+
+message search{
+	search_sort sort = 1;
+	search_filters filters = 2;
+}
+
+message search_continuation{
+	message search_data{
+		string query = 2;
+		string options = 3;
+		string webboxstats = 34;
+	}
+
+	search_data data = 2;
+	uint32 const = 3;
+	string type = 4;
+}
+
+message search_options{
+	message search_position{
+		message off{
+			uint32 total = 1;
+			uint32 page = 2;
+		}
+
+		off offset = 1;
+	}
+
+	search_sort sort = 1;
+	search_filters filters = 2;
+	uint32 offset = 9;
+	repeated string id = 16;
+	search_position position = 22;
+}

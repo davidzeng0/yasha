@@ -4,6 +4,7 @@ const SourceError = require('../SourceError');
 const util = require('./util');
 
 const {Track, TrackImage, TrackResults, TrackPlaylist, TrackStream, TrackStreams} = require('../Track');
+const {gen_playlist_continuation, gen_search_options} = require('../../proto/youtube');
 
 var js_variable = '[\\w_\\$][\\w\\d]*';
 var js_singlequote_string = '\'[^\'\\\\]*(:?\\\\[\\s\\S][^\'\\\\]*)*\'';
@@ -786,24 +787,20 @@ class YoutubeResults extends TrackResults{
 }
 
 class YoutubePlaylist extends TrackPlaylist{
-	set_continuation(cont){
-		this.continuation = cont;
-	}
-
-	process(id, data){
+	process(id, data, offset){
 		this.id = id;
 
 		for(var item of data){
 			if(item.continuationItemRenderer)
-				this.set_continuation(item.continuationItemRenderer.continuationEndpoint.continuationCommand.token);
+				this.next_offset = offset + this.length;
 			else if(item.playlistVideoRenderer)
 				this.push(new YoutubeTrack().from_playlist(item.playlistVideoRenderer));
 		}
 	}
 
 	async next(){
-		if(this.continuation)
-			return await api.playlist_once(null, this.continuation);
+		if(this.next_offset)
+			return await api.playlist_once(this.id, this.next_offset);
 		return null;
 	}
 
@@ -1185,39 +1182,19 @@ const api = new class YoutubeAPI{
 		}
 	}
 
-	async playlist_once(id, continuation){
+	async playlist_once(id, start = 0){
 		var results = new YoutubePlaylist();
-		var body = {};
+		var data = await this.api_request('browse', {continuation: gen_playlist_continuation(id, start)});
 
-		if(continuation)
-			body.continuation = continuation;
-		else
-			body.browseId = 'VL' + id;
-		var data = await this.api_request('browse', body);
-
-		if(continuation){
-			if(!data.onResponseReceivedActions)
-				throw new SourceError.NOT_FOUND('Playlist continuation token not found');
-			try{
-				data = data.onResponseReceivedActions[0].appendContinuationItemsAction.continuationItems;
-			}catch(e){
-				throw new SourceError.INTERNAL_ERROR(null, e);
-			}
-		}else{
-			if(!data.sidebar)
-				throw new SourceError.NOT_FOUND('Playlist not found');
-			try{
-				var details = get_property(data.sidebar.playlistSidebarRenderer.items, 'playlistSidebarPrimaryInfoRenderer');
-
-				data = data.contents.twoColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[0].itemSectionRenderer.contents[0].playlistVideoListRenderer.contents;
-				results.setMetadata(text(details.title), text(details.description))
-			}catch(e){
-				throw new SourceError.INTERNAL_ERROR(null, e);
-			}
-		}
-
+		if(data.alerts || !data.sidebar)
+			throw new SourceError.NOT_FOUND('Playlist not found');
+		if(!data.onResponseReceivedActions)
+			return results;
 		try{
-			results.process(id, data);
+			var details = get_property(data.sidebar.playlistSidebarRenderer.items, 'playlistSidebarPrimaryInfoRenderer');
+
+			results.setMetadata(text(details.title), text(details.description));
+			results.process(id, data.onResponseReceivedActions[0].appendContinuationItemsAction.continuationItems, start);
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
@@ -1227,23 +1204,23 @@ const api = new class YoutubeAPI{
 
 	async playlist(id, limit){
 		var list = null;
-		var continuation = null;
+		var offset = 0;
 
 		do{
-			var result = await this.playlist_once(id, continuation);
+			var result = await this.playlist_once(id, offset);
 
 			if(!list)
 				list = result;
 			else
 				list = list.concat(result);
-			continuation = result.continuation;
-		}while(continuation && (!limit || list.length < limit));
+			offset = result.next_offset;
+		}while(offset && (!limit || list.length < limit));
 
 		return list;
 	}
 
 	async search(query, continuation){
-		var body = await this.api_request('search', continuation ? {continuation} : {query, params: 'EgIQAQ%3D%3D'});
+		var body = await this.api_request('search', continuation ? {continuation} : {query, params: gen_search_options({type: 'video'})});
 
 		if(continuation){
 			if(!body.onResponseReceivedCommands)
