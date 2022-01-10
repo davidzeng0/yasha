@@ -9,11 +9,12 @@ Only compiles on Linux or WSL2+.
 1. Install [sange](https://github.com/ilikdoge/sange) dependencies
 2. libsodium
 3. libtool
+4. protoc
 
 ### install
 ```bash
 # dependencies
-apt install libsodium-dev libtool
+apt install libsodium-dev libtool protobuf-compiler
 
 # install
 npm i git://github.com/ilikdoge/yasha.git

@@ -126,8 +126,8 @@ const youtube = new class Youtube extends APISource{
 		return this.api.search(query, continuation);
 	}
 
-	async playlistOnce(id, continuation){
-		return this.api.playlist_once(id, continuation);
+	async playlistOnce(id, start){
+		return this.api.playlist_once(id, start);
 	}
 
 	setCookie(cookie){
