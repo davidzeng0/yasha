@@ -665,8 +665,9 @@ function check_playable(st){
 			if(reason == 'Video unavailable')
 				throw new SourceError.NOT_FOUND('Video not found');
 		case 'unplayable':
-		case 'login_required':
 			throw new SourceError.UNPLAYABLE(reason || status);
+		case 'login_required':
+			throw new SourceError.UNPLAYABLE('Video is age restricted');
 		case 'content_check_required':
 			return 'content_check_required';
 	}
@@ -900,6 +901,9 @@ function set_language(context){
 	}
 }
 
+
+const RELOAD_INTERVAL = 7 * 24 * 60 * 60 * 1000;
+
 /* api requests and headers to youtube.com */
 const api = new class YoutubeAPI{
 	constructor(){
@@ -915,7 +919,7 @@ const api = new class YoutubeAPI{
 		this.reloading = null;
 		this.needs_reload = false;
 		this.last_reload = 0;
-		this.reload_interval = 24 * 60 * 60 * 1000;
+		this.reload_interval = RELOAD_INTERVAL;
 	}
 
 	async reload(force){
@@ -941,7 +945,21 @@ const api = new class YoutubeAPI{
 		}while(this.needs_reload);
 	}
 
-	async load_state(origin = 'www', cookie = this.cookie, headers = {}){
+	async load_state(origin = 'www', cookie = this.cookie, headers = {
+		'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36',
+		'upgrade-insecure-requests': '1',
+		'service-worker-navigation-preload': 'true',
+		'sec-fetch-user': '?1',
+		'sec-fetch-site': 'same-origin',
+		'sec-fetch-mode': 'navigate',
+		'sec-fetch-dest': 'document',
+		'sec-ch-ua-platform': '"Windows"',
+		'sec-ch-ua-mobile': '?0',
+		'sec-ch-ua': '"Not A;Brand";v="99", "Chromium";v="97", "Google Chrome";v="97"',
+		'cache-control': 'max-age=0',
+		'accept-language': 'en-US,en;q=0.9',
+		'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'
+	}){
 		var {body} = await Request.get(`https://${origin}.youtube.com/`, cookie ? {headers: {cookie, ...headers}} : {headers});
 
 		var state = /ytcfg\.set\((\{[^]+?\})\);/.exec(body);
@@ -998,7 +1016,7 @@ const api = new class YoutubeAPI{
 	async api_request(path, body = {}, query = '', origin = 'www'){
 		/* youtube v1 api */
 		var time = Date.now();
-		var options = {};
+		var options = {headers: {}};
 
 		await this.prefetch(time);
 
@@ -1006,9 +1024,6 @@ const api = new class YoutubeAPI{
 			body.playbackContext = {contentPlaybackContext: {signatureTimestamp: this.signature_timestamp}};
 		body.context = this.innertube_context;
 		options.method = 'POST';
-
-		if(!options.headers)
-			options.headers = {};
 		options.headers.origin = `https://${origin}.youtube.com`;
 
 		if(this.sapisid){
@@ -1253,8 +1268,8 @@ const api = new class YoutubeAPI{
 		if(!cookiestr){
 			this.cookie = '';
 			this.sapisid = '';
-			delete this.headers['x-youtube-identity-token'];
 
+			delete this.headers['x-youtube-identity-token'];
 			return;
 		}
 
@@ -1274,7 +1289,7 @@ const api = new class YoutubeAPI{
 		}
 
 		if(!sapisid)
-			throw new SourceError.INTERNAL_ERROR('Invalid Cookie');
+			throw new SourceError.INTERNAL_ERROR(null, new Error('Invalid Cookie'));
 		this.sapisid = sapisid;
 		this.cookie = cookiestr;
 		this.reload(true);
@@ -1459,7 +1474,7 @@ var music = new class YoutubeMusic{
 		this.reloading = null;
 		this.needs_reload = false;
 		this.last_reload = 0;
-		this.reload_interval = 24 * 60 * 60 * 1000;
+		this.reload_interval = RELOAD_INTERVAL;
 	}
 
 	async reload(force){
@@ -1486,7 +1501,7 @@ var music = new class YoutubeMusic{
 	}
 
 	async load(){
-		var state = await api.load_state('music', null, {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36'});
+		var state = await api.load_state('music');
 
 		this.innertube_key = state.INNERTUBE_API_KEY;
 		this.innertube_context = state.INNERTUBE_CONTEXT;
