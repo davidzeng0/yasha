@@ -172,7 +172,7 @@ const api = (new class SpotifyAPI{
 		if(results.topResult){
 			if(results.topResult.type == 'song')
 				return results.topResult;
-			if(results.songs){
+			if(results.songs && results.songs.length){
 				var result = results.songs[0];
 
 				if(this.artist_match(track, result) && this.title_match(track, result))

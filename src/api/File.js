@@ -35,7 +35,7 @@ class FileTrack extends Track{
 	}
 
 	async fetch(){
-		throw new SourceError.INTERNAL_ERROR('Cannot fetch on a FileTrack');
+		throw new SourceError.INTERNAL_ERROR(null, new Error('Cannot fetch on a FileTrack'));
 	}
 
 	get url(){
