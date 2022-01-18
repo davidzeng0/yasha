@@ -1201,7 +1201,7 @@ const api = new class YoutubeAPI{
 		var results = new YoutubePlaylist();
 		var data = await this.api_request('browse', {continuation: gen_playlist_continuation(id, start)});
 
-		if(data.alerts || !data.sidebar)
+		if(!data.sidebar)
 			throw new SourceError.NOT_FOUND('Playlist not found');
 		if(!data.onResponseReceivedActions)
 			return results;

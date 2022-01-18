@@ -53,8 +53,8 @@ const youtube = new class Youtube extends APISource{
 
 		this.Music = this.api.Music;
 
-		this.id_regex = /^([a-zA-Z0-9_-]{11})$/;
-		this.playlist_regex = /^((?:PL|LL|FL|UU)[a-zA-Z0-9_-]+)$/;
+		this.id_regex = /^([\w_-]{11})$/;
+		this.playlist_regex = /^((?:PL|LL|FL|UU)[\w_-]+)$/;
 	}
 
 	weak_match(id){
