@@ -469,20 +469,24 @@ var decoder = new class YoutubeDecoder{
 		}
 	}
 
+	escape_regex(str){
+		return str.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	}
+
 	get_signature_decode(body){
 		var function_defs = new RegExp(signature_function_definitions),
 			function_execs = new RegExp(signature_function_execs);
 		function_defs = function_defs.exec(body);
 		function_execs = function_execs.exec(body);
 
-		var obj = function_defs[1], obj_body = function_defs[2], func_body = function_execs[1];
+		var obj = this.escape_regex(function_defs[1]), obj_body = function_defs[2], func_body = function_execs[1];
 
 		for(var i = 0; i < signature_functions.length; i++){
 			var match = new RegExp('(' + js_key_string + ')' + signature_functions[i].content, 'g');
 			var result = match.exec(obj_body);
 
 			if(result)
-				signature_functions[i].key = result[1];
+				signature_functions[i].key = this.escape_regex(result[1]);
 			else
 				signature_functions[i].key = '';
 		}
