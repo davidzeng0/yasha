@@ -195,7 +195,7 @@ var n_element_types = [
 		}
 	},
 	{
-		content: 'function\\(d,e,f\\)\\{var h=f\\.length;d\\.forEach\\(function\\(l,m,n\\)\\{this\\.push\\(n\\[m\\]=f\\[\\(f\\.indexOf\\(l\\)-f\\.indexOf\\(this\\[m\\]\\)\\+m\\+h--\\)%f\\.length\\]\\)\\},e\\.split\\(' + js_empty_string + '\\)\\)\\}',
+		content: 'function\\(d,e,f\\)\\{var (?:k|h)=f\\.length;d\\.forEach\\(function\\(l,m,n\\)\\{this\\.push\\(n\\[m\\]=f\\[\\(f\\.indexOf\\(l\\)-f\\.indexOf\\(this\\[m\\]\\)\\+m\\+(?:k|h)--\\)%f\\.length\\]\\)\\},e\\.split\\(' + js_empty_string + '\\)\\)\\}',
 		process: function(content){
 			return {
 				type: 'function',
