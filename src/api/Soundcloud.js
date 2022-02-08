@@ -334,7 +334,14 @@ var api = new class SoundcloudAPI{
 		}
 	}
 
+	check_valid_id(id){
+		if(!/^[\d]+$/.test(id))
+			throw new SourceError.NOT_FOUND();
+	}
+
 	async get(id){
+		this.check_valid_id(id);
+
 		var body = await this.api_request('tracks/' + id);
 
 		var track;
@@ -351,6 +358,8 @@ var api = new class SoundcloudAPI{
 	}
 
 	async get_streams(id){
+		this.check_valid_id(id);
+
 		var body = await this.api_request('tracks/' + id);
 
 		var streams;
@@ -383,15 +392,15 @@ var api = new class SoundcloudAPI{
 	}
 
 	async playlist_once(id, offset = 0, limit = 50){
+		this.check_valid_id(id);
+
 		var body = await this.api_request('playlists/' + id);
 
 		return this.resolve_playlist(body, offset, limit);
 	}
 
 	async playlist(id, limit){
-		var body = await this.api_request('playlists/' + id);
-
-		return this.resolve_playlist(body, 0, limit);
+		return this.playlist_once(id, 0, limit);
 	}
 };
 

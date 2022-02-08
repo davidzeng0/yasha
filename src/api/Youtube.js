@@ -1298,6 +1298,106 @@ const api = new class YoutubeAPI{
 		this.cookie = cookiestr;
 		this.reload(true);
 	}
+
+	track_match_artist_match(a, b){
+		for(var artist of a.artists)
+			if(b.artists.includes(artist))
+				return true;
+		return false;
+	}
+
+	track_match_title_match(a, b){
+		a = a.title.toLowerCase();
+		b = b.title.toLowerCase();
+
+		return a.includes(b) || b.includes(a);
+	}
+
+	track_match_best_result(results, track, aggr = false, dur = true){
+		var durmatch = null;
+
+		if(results.topResult){
+			if(results.topResult.type == 'song')
+				return results.topResult;
+			if(results.songs && results.songs.length){
+				for(var song of results.songs){
+					if(this.track_match_artist_match(track, song) && this.track_match_title_match(track, song))
+						return song;
+				}
+			}
+
+			return results.topResult;
+		}
+
+		for(var result of results){
+			if(this.track_match_artist_match(track, result) && this.track_match_title_match(track, result))
+				return result;
+			if(!durmatch && track.duration != -1 && result.duration != -1 && Math.abs(result.duration - track.duration) < 5)
+				durmatch = result;
+		}
+
+		if(aggr)
+			return null;
+		if(durmatch)
+			return durmatch;
+		if(!dur)
+			return null;
+		return results.length ? results[0] : null;
+	}
+
+	async track_match_lookup(track){
+		var results = await music.search(track.artists.join(' ') + ' ' + track.title);
+		var expmatch = results.filter((t) => t.explicit == track.explicit);
+		var match = null;
+
+		if(results.topResult && results.topResult.explicit == track.explicit)
+			expmatch.topResult = results.topResult;
+		if(results.songs)
+			expmatch.songs = results.songs.filter((t) => t.explicit == track.explicit);
+		try{
+			match = this.track_match_best_result(expmatch, track, true);
+
+			if(match)
+				return match;
+			match = this.track_match_best_result(results, track, false, false);
+
+			if(match)
+				return match;
+		}catch(e){
+			throw new SourceError.INTERNAL_ERROR(null, e);
+		}
+
+		results = await results.next();
+
+		try{
+			return this.track_match_best_result(results, track);
+		}catch(e){
+			throw new SourceError.INTERNAL_ERROR(null, e);
+		}
+	}
+
+	async track_match(track){
+		if(track.youtube_id){
+			try{
+				return await this.get_streams(track.youtube_id);
+			}catch(e){
+
+			}
+		}
+
+		var result = await this.track_match_lookup(track);
+
+		if(result){
+			var id = result.id;
+
+			result = await result.getStreams();
+			track.youtube_id = id;
+
+			return result;
+		}
+
+		throw new SourceError.UNPLAYABLE('Could not find streams for this track');
+	}
 }
 
 class YoutubeMusicTrack extends YoutubeTrack{
