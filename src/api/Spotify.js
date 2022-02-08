@@ -23,7 +23,7 @@ class SpotifyTrack extends Track{
 	}
 
 	async getStreams(){
-		return api.youtube_lookup(this);
+		return Youtube.track_match(this);
 	}
 
 	get url(){
@@ -45,14 +45,17 @@ class SpotifyResults extends TrackResults{
 }
 
 class SpotifyPlaylist extends TrackPlaylist{
-	set_continuation(type, id, start){
+	set(type, id){
 		this.type = type;
 		this.id = id;
+	}
+
+	set_continuation(start){
 		this.start = start;
 	}
 
 	async next(){
-		if(this.id != null)
+		if(this.start !== undefined)
 			return await api.list_once(this.type, this.id, this.start);
 		return null;
 	}
@@ -152,108 +155,14 @@ const api = (new class SpotifyAPI{
 		return body;
 	}
 
-	artist_match(a, b){
-		for(var artist of a.artists)
-			if(b.artists.includes(artist))
-				return true;
-		return false;
-	}
-
-	title_match(a, b){
-		a = a.title.toLowerCase();
-		b = b.title.toLowerCase();
-
-		return a.includes(b) || b.includes(a);
-	}
-
-	best_result(results, track, aggr = false, dur = true){
-		var durmatch = null;
-
-		if(results.topResult){
-			if(results.topResult.type == 'song')
-				return results.topResult;
-			if(results.songs && results.songs.length){
-				var result = results.songs[0];
-
-				if(this.artist_match(track, result) && this.title_match(track, result))
-					return result;
-			}
-
-			return results.topResult;
-		}
-
-		for(var result of results){
-			if(this.artist_match(track, result) && this.title_match(track, result))
-				return result;
-			if(!durmatch && track.duration != -1 && result.duration != -1 && Math.abs(result.duration - track.duration) < 5)
-				durmatch = result;
-		}
-
-		if(aggr)
-			return null;
-		if(durmatch)
-			return durmatch;
-		if(!dur)
-			return null;
-		return results.length ? results[0] : null;
-	}
-
-	async youtube_search(track){
-		var query = track.artists.join(' ') + ' ' + track.title;
-		var results = await Youtube.Music.search(query);
-		var expmatch = results.filter((t) => t.explicit == track.explicit);
-		var match = null;
-
-		if(results.topResult && results.topResult.explicit == track.explicit)
-			expmatch.topResult = results.topResult;
-		if(results.songs)
-			expmatch.songs = results.songs.filter((t) => t.explicit == track.explicit);
-		try{
-			match = this.best_result(expmatch, track, true);
-
-			if(match)
-				return match;
-			match = this.best_result(results, track, false, false);
-
-			if(match)
-				return match;
-		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
-		}
-
-		results = await results.next();
-
-		try{
-			return this.best_result(results, track);
-		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
-		}
-	}
-
-	async youtube_lookup(track){
-		if(track.youtube_id){
-			try{
-				return await Youtube.get_streams(track.youtube_id);
-			}catch(e){
-
-			}
-		}
-
-		var result = await this.youtube_search(track);
-
-		if(result){
-			var id = result.id;
-
-			result = await result.getStreams();
-			track.youtube_id = id;
-
-			return result;
-		}
-
-		throw new SourceError.UNPLAYABLE('Could not find streams for this track');
+	check_valid_id(id){
+		if(!/^[\w]+$/.test(id))
+			throw new SourceError.NOT_FOUND();
 	}
 
 	async get(id){
+		this.check_valid_id(id);
+
 		var track = await this.api_request('tracks/' + id);
 		var author = track.artists[track.artists.length - 1];
 
@@ -269,7 +178,7 @@ const api = (new class SpotifyAPI{
 	}
 
 	async get_streams(id){
-		return this.youtube_lookup(await this.get(id));
+		return Youtube.track_match(await this.get(id));
 	}
 
 	async search(query, start = 0, length = 20){
@@ -289,6 +198,8 @@ const api = (new class SpotifyAPI{
 	}
 
 	async list_once(type, id, start = 0, length){
+		this.check_valid_id(id);
+
 		var playlist = new SpotifyPlaylist();
 		var images, tracks;
 
@@ -304,8 +215,10 @@ const api = (new class SpotifyAPI{
 			tracks = await this.api_request(type + '/' + id + '/tracks?offset=' + start + '&limit=' + length);
 		}
 
+		playlist.set(type, id);
+
 		try{
-			for(const item of tracks.items){
+			for(var item of tracks.items){
 				if(type == 'playlists' && item.track && !item.track.is_local)
 					playlist.push(new SpotifyTrack().from(item.track));
 				else if(type == 'albums'){
@@ -318,7 +231,7 @@ const api = (new class SpotifyAPI{
 		}
 
 		if(tracks.items.length)
-			playlist.set_continuation(type, id, start + tracks.items.length);
+			playlist.set_continuation(start + tracks.items.length);
 		return playlist;
 	}
 
@@ -342,7 +255,7 @@ const api = (new class SpotifyAPI{
 			else
 				list = list.concat(result);
 			offset = result.start;
-		}while(result.id && (!limit || list.length < limit));
+		}while(offset !== undefined && (!limit || list.length < limit));
 
 		return list;
 	}

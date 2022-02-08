@@ -231,6 +231,68 @@ const spotify = new class Spotify extends APISource{
 	}
 }
 
+const apple = new class AppleMusic extends APISource{
+	constructor(){
+		super('AppleMusic');
+	}
+
+	match(content){
+		var url;
+
+		try{
+			url = new URL(content);
+		}catch(e){
+			return null;
+		}
+
+		if(url.hostname == 'music.apple.com' && url.pathname.startsWith('/') && url.pathname.length > 1){
+			var path = url.pathname.substring(1).split('/');
+
+			if(path.length < 2)
+				return null;
+			if(path[0] != 'playlist' && path[0] != 'album' && path[0] != 'song')
+				path.shift();
+			if(path.length < 2)
+				return null;
+			switch(path[0]){
+				case 'song':
+					return {track: path[1]};
+				case 'playlist':
+					return {playlist: path[2] ?? path[1]};
+				case 'album':
+					var track = url.searchParams.get('i');
+
+					if(track)
+						return {track};
+					return {album: path[2] ?? path[1]};
+			}
+		}
+
+		return null;
+	}
+
+	async resolve(match){
+		if(match.track)
+			return this.api.get(match.track);
+		if(match.playlist)
+			return this.api.playlist_once(match.playlist);
+		if(match.album)
+			return this.api.album_once(match.album);
+	}
+
+	async search(query, offset, length){
+		return this.api.search(query, offset, length);
+	}
+
+	async playlistOnce(id, offset, length){
+		return this.api.playlist_once(id, offset, length);
+	}
+
+	async albumOnce(id, offset, length){
+		return this.api.album_once(id, offset, length);
+	}
+}
+
 const file = new class File extends APISource{
 	constructor(){
 		super('File');
@@ -252,13 +314,15 @@ const file = new class File extends APISource{
 }
 
 class Source{
-	static resolve(input){
-		var sources = [youtube, soundcloud, spotify];
+	static resolve(input, weak = true){
+		var sources = [youtube, soundcloud, spotify, apple];
 		var match = null;
 
 		for(var source of sources)
 			if(match = source.match(input))
 				return source.resolve(match);
+		if(!weak)
+			return null;
 		for(var source of sources)
 			if(match = source.weak_match(input))
 				return source.weak_resolve(match);
@@ -270,6 +334,7 @@ Source.Error = SourceError;
 Source.Youtube = youtube;
 Source.Soundcloud = soundcloud;
 Source.Spotify = spotify;
+Source.AppleMusic = apple;
 Source.File = file;
 
 module.exports = Source;
