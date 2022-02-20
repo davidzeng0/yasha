@@ -10,9 +10,9 @@ class AppleMusicTrack extends Track{
 	}
 
 	gen_image(url, artist){
-		var dim = artist ? 380 : 486;
+		var dim = artist ? 220 : 486;
 
-		return [new TrackImage(url.replaceAll('{w}', dim).replaceAll('{h}', dim).replaceAll('{c}', artist ? 'cc' : 'bb').replaceAll('{f}', 'webp'), dim, dim)];
+		return [new TrackImage(url.replaceAll('{w}', dim).replaceAll('{h}', dim).replaceAll('{c}', artist ? 'sr' : 'bb').replaceAll('{f}', 'webp'), dim, dim)];
 	}
 
 	from(track){

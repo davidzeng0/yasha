@@ -2,10 +2,11 @@ const {Track, TrackStream, TrackStreams} = require('../Track');
 const SourceError = require('../SourceError');
 
 class FileStream extends TrackStream{
-	constructor(url){
+	constructor(url, isfile){
 		super(url);
 
-		this.setTracks(true, true); /* unknown */
+		this.is_file = isfile;
+		this.setTracks(true, true); /* we don't know what kind of tracks are in this file */
 	}
 
 	equals(other){
@@ -14,20 +15,21 @@ class FileStream extends TrackStream{
 }
 
 class FileStreams extends TrackStreams{
-	from(url){
-		this.push(new FileStream(url));
+	from(url, isfile){
+		this.push(new FileStream(url, isfile));
 
 		return this;
 	}
 }
 
 class FileTrack extends Track{
-	constructor(url){
+	constructor(url, isfile = false){
 		super('File');
 
 		this.stream_url = url;
 		this.id = url;
-		this.setStreams(new FileStreams().from(url))
+		this.isLocalFile = isfile;
+		this.setStreams(new FileStreams().from(url, isfile))
 	}
 
 	async getStreams(){
@@ -44,8 +46,8 @@ class FileTrack extends Track{
 }
 
 class File{
-	resolve(url){
-		return new FileTrack(url);
+	create(url, isfile){
+		return new FileTrack(url, isfile);
 	}
 }
 

@@ -308,7 +308,9 @@ const file = new class File extends APISource{
 		}
 
 		if(url.protocol == 'http:' || url.protocol == 'https:')
-			return this.api.resolve(content);
+			return this.api.create(content);
+		if(url.protocol == 'file:')
+			return this.api.create(content, true);
 		return null;
 	}
 }
