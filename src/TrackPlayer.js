@@ -171,19 +171,30 @@ class TrackPlayer extends EventEmitter{
 
 			var data = this.get_connection_data();
 
-			this.player.ffplayer.setSecretBox(connection_data.secretKey, mode, connection_data.ssrc);
-			this.player.ffplayer.updateSecretBox(data.sequence, data.timestamp, data.nonce);
+			try{
+				this.player.ffplayer.setSecretBox(connection_data.secretKey, mode, connection_data.ssrc);
+				this.player.ffplayer.updateSecretBox(data.sequence, data.timestamp, data.nonce);
 
-			if(this.external_packet_send){
-				this.player.ffplayer.pipe(udp.remote.ip, udp.remote.port);
+				if(this.external_packet_send)
+					this.player.ffplayer.pipe(udp.remote.ip, udp.remote.port);
+			}catch(e){
+				this.cleanup();
+				this.emit('error', e);
 
-				this.get_connection().setSpeaking(true);
+				return;
 			}
 
+			if(this.external_packet_send)
+				this.get_connection().setSpeaking(true);
 			return;
 		}
 
-		this.player.ffplayer.setSecretBox(new Uint8Array(32), 0, 0);
+		try{
+			this.player.ffplayer.setSecretBox(new Uint8Array(32), 0, 0);
+		}catch(e){
+			this.cleanup();
+			this.emit('error', e);
+		}
 
 		if(this.external_packet_send)
 			this.player.ffplayer.pipe();
@@ -192,7 +203,19 @@ class TrackPlayer extends EventEmitter{
 	create_player(start_time){
 		this.destroy_player();
 
-		this.player = new AudioPlayer(this.external_encrypt ? new Uint8Array(4096) : audio_output, false);
+		if(this.track.player){
+			this.player = new this.track.player(this.external_encrypt ? new Uint8Array(4096) : audio_output, false);
+			this.player.setTrack(this.track);
+		}else{
+			try{
+				this.player = new AudioPlayer(this.external_encrypt ? new Uint8Array(4096) : audio_output, false);
+			}catch(e){
+				this.emit('error', e);
+
+				return;
+			}
+		}
+
 		this.player.setOutput(2, 48000, 256000);
 
 		if(start_time)
@@ -447,8 +470,12 @@ class TrackPlayer extends EventEmitter{
 			return;
 		if(this.normalize_volume)
 			this.player.setVolume(this.stream.volume);
-		this.player.setURL(this.stream.url);
-		this.player.start();
+		try{
+			this.player.setURL(this.stream.url, this.stream.is_file);
+			this.player.start();
+		}catch(e){
+			this.emit('error', e);
+		}
 	}
 
 	check_destroyed(){
