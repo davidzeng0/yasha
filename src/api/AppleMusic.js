@@ -146,6 +146,7 @@ const api = (new class AppleMusicAPI{
 			await this.prefetch();
 
 			options.headers.authorization = `Bearer ${this.token}`;
+			options.headers.origin = 'https://music.apple.com';
 			res = (await Request.getResponse(`https://amp-api.music.apple.com/v1/catalog/us/${path}${queries}`, options)).res;
 
 			if(res.status == 401){
