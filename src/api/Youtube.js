@@ -277,8 +277,8 @@ const api = new class YoutubeAPI{
 		if(path == 'player'){
 			body.contentCheckOk = true;
 			body.racyCheckOk = true;
-			body.context.client.clientName = 'ANDROID';
-			body.context.client.clientVersion = '17.01.4';
+			body.context.client.clientName = 'IOS';
+			body.context.client.clientVersion = '17.13.3';
 		}
 
 		if(this.sapisid){
@@ -293,7 +293,7 @@ const api = new class YoutubeAPI{
 
 		options.body = JSON.stringify(body);
 
-		var {res} = await Request.getResponse(`https://${origin}.youtube.com/youtubei/v1/${path}?key=${this.innertube_key}${query}`, options);
+		var {res} = await Request.getResponse(`https://${origin}.youtube.com/youtubei/v1/${path}?key=${this.innertube_key}${query}&prettyPrint=false`, options);
 		var body;
 
 		try{
