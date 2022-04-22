@@ -277,8 +277,8 @@ const api = new class YoutubeAPI{
 		if(path == 'player'){
 			body.contentCheckOk = true;
 			body.racyCheckOk = true;
-			body.context.client.clientName = 'IOS';
-			body.context.client.clientVersion = '17.13.3';
+			body.context.client.clientName = 'ANDROID';
+			body.context.client.clientVersion = '17.14.2';
 		}
 
 		if(this.sapisid){
