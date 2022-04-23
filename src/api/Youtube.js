@@ -285,7 +285,7 @@ const api = new class YoutubeAPI{
 			var hash;
 
 			time = Math.floor(time / 1000);
-			hash = crypto.createHash('sha1').update(`${time} ${this.sapisid} https://www.youtube.com`).digest('hex');
+			hash = crypto.createHash('sha1').update(`${time} ${this.sapisid} https://${origin}.youtube.com`).digest('hex');
 
 			options.headers.authorization = 'SAPISIDHASH ' + time + '_' + hash;
 			options.headers.cookie = this.cookie;
