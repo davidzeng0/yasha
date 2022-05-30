@@ -75,6 +75,10 @@ function parse_timestamp(str){
 	return seconds;
 }
 
+function youtube_thumbnails(video_id){
+	return [new TrackImage(`https://i.ytimg.com/vi/${video_id}/mqdefault.jpg`, 320, 180)]
+}
+
 class YoutubeTrack extends Track{
 	constructor(){
 		super('Youtube');
@@ -88,7 +92,7 @@ class YoutubeTrack extends Track{
 			video_details.videoId,
 			video_details.title,
 			number(video_details.lengthSeconds),
-			TrackImage.from(video_details.thumbnail.thumbnails)
+			youtube_thumbnails(video_details.videoId)
 		).setStreams(
 			streams
 		);
@@ -108,7 +112,7 @@ class YoutubeTrack extends Track{
 			track.videoId,
 			text(track.title),
 			track.lengthText ? parse_timestamp(track.lengthText.simpleText) : -1,
-			TrackImage.from(track.thumbnail.thumbnails),
+			youtube_thumbnails(track.videoId)
 		);
 	}
 
@@ -120,7 +124,7 @@ class YoutubeTrack extends Track{
 			track.videoId,
 			text(track.title),
 			number(track.lengthSeconds),
-			TrackImage.from(track.thumbnail.thumbnails)
+			youtube_thumbnails(track.videoId)
 		).setPlayable(track.isPlayable ? true : false);
 	}
 
@@ -462,75 +466,108 @@ const api = new class YoutubeAPI{
 		this.cookie = cookiestr;
 	}
 
-	track_match_artist_match(a, b){
-		for(var artist of a.artists)
-			if(b.artists.includes(artist))
+	string_word_match(big, small){
+		var boundary = (c) => /[\s\W]/g.test(c);
+
+		big = big.toLowerCase();
+		small = small.toLowerCase();
+
+		if(!big.length || !small.length || boundary(small[0]))
+			return 0;
+		var l = 0, r = small.length;
+
+		while(l < r){
+			var mid = (r + l + 1) >> 1;
+
+			if(big.includes(small.substring(0, mid)))
+				l = mid;
+			else
+				r = mid - 1;
+		}
+
+		if(l == small.length)
+			return l;
+		for(var i = l - 1; i > 0; i--)
+			if(boundary(small[i]))
+				return i;
+		return 0;
+	}
+
+	track_match_artist(track, result){
+		for(var artist of track.artists){
+			if(result.artists){
+				if(result.artists.includes(artist))
+					return true;
+			}else if(this.string_word_match(result.author, artist) > 0){
 				return true;
+			}
+		}
+
 		return false;
 	}
 
-	track_match_title_match(a, b){
-		a = a.title.toLowerCase();
-		b = b.title.toLowerCase();
-
-		return a.includes(b) || b.includes(a);
+	track_match_title(track, result){
+		return this.string_word_match(result.title, track.title) > 0;
 	}
 
-	track_match_best_result(results, track, aggr = false, dur = true){
-		var durmatch = null;
+	track_match_best_result(results, track, aggressive = false){
+		var duration_match = null;
+		var track_match = null;
 
-		if(results.topResult){
-			if(results.topResult.type == 'song')
-				return results.topResult;
-			if(results.songs && results.songs.length){
-				for(var song of results.songs){
-					if(this.track_match_artist_match(track, song) && this.track_match_title_match(track, song))
-						return song;
+		if(results.top_result && results.top_result.type == 'song')
+			return results.top_result;
+		if(results.songs){
+			for(var song of results.songs){
+				if(this.track_match_artist(track, song) && this.track_match_title(track, song)){
+					return song;
 				}
 			}
-
-			return results.topResult;
 		}
 
+		if(results.top_result)
+			return results.top_result;
 		for(var result of results){
-			if(this.track_match_artist_match(track, result) && this.track_match_title_match(track, result))
-				return result;
-			if(!durmatch && track.duration != -1 && result.duration != -1 && Math.abs(result.duration - track.duration) < 5)
-				durmatch = result;
+			if(this.track_match_artist(track, result) && this.track_match_title(track, result))
+				track_match = result;
+			if(!duration_match && track.duration != -1 && result.duration != -1 && Math.abs(result.duration - track.duration) < 5){
+				duration_match = result;
+
+				if(this.track_match_title(track, result))
+					return duration_match;
+			}
 		}
 
-		if(aggr)
+		if(track_match)
+			return track_match;
+		if(aggressive)
 			return null;
-		if(durmatch)
-			return durmatch;
-		if(!dur)
-			return null;
-		return results.length ? results[0] : null;
+		return duration_match;
 	}
 
 	async track_match_lookup(track){
-		var results = await music.search(track.artists.join(' ') + ' ' + track.title);
+		var title = track.artists.join(' ') + ' ' + track.title;
+		var results = await music.search(title);
 		var expmatch = results.filter((t) => t.explicit == track.explicit);
 		var match = null;
 
-		if(results.topResult && results.topResult.explicit == track.explicit)
-			expmatch.topResult = results.topResult;
+		if(results.top_result && results.top_result.explicit == track.explicit)
+			expmatch.top_result = results.top_result;
 		if(results.songs)
 			expmatch.songs = results.songs.filter((t) => t.explicit == track.explicit);
 		try{
 			match = this.track_match_best_result(expmatch, track, true);
 
-			if(match)
+			if(match && (match.type != 'video' || match.duration == -1 || track.duration == -1 || Math.abs(match.duration - track.duration) <= 5))
 				return match;
 			match = this.track_match_best_result(results, track, false, false);
 
-			if(match)
+			if(match && (match.type != 'video' || match.duration == -1 || track.duration == -1 || Math.abs(match.duration - track.duration) <= 5))
 				return match;
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
 		}
 
-		results = await results.next();
+		results = await this.search(title);
 
 		try{
 			return this.track_match_best_result(results, track);
@@ -639,7 +676,7 @@ class YoutubeMusicTrack extends YoutubeTrack{
 			track.playlistItemData.videoId,
 			text(track.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text),
 			duration,
-			TrackImage.from(track.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails),
+			youtube_thumbnails(track.playlistItemData.videoId)
 		);
 	}
 
@@ -676,7 +713,7 @@ class YoutubeMusicResults extends TrackResults{
 				var tracks = this.from_section(section.contents);
 
 				if(section_name == 'top result' && tracks.length)
-					this.topResult = tracks[0];
+					this.top_result = tracks[0];
 				if(section_name == 'songs')
 					this.songs = tracks;
 				this.push(...tracks);
