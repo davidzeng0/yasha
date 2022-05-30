@@ -559,7 +559,7 @@ const api = new class YoutubeAPI{
 
 			if(match && (match.type != 'video' || match.duration == -1 || track.duration == -1 || Math.abs(match.duration - track.duration) <= 5))
 				return match;
-			match = this.track_match_best_result(results, track, false, false);
+			match = this.track_match_best_result(results, track, false);
 
 			if(match && (match.type != 'video' || match.duration == -1 || track.duration == -1 || Math.abs(match.duration - track.duration) <= 5))
 				return match;
