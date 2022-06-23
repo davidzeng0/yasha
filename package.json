@@ -1,6 +1,7 @@
 {
 	"main": "index.js",
 	"name": "yasha",
+	"version": "0.0.0",
 	"dependencies": {
 		"discord.js": "^13.3.0",
 		"node-fetch": "^2.6.6",
