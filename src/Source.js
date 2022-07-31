@@ -54,7 +54,6 @@ const youtube = new class Youtube extends APISource{
 		this.Music = this.api.Music;
 
 		this.id_regex = /^([\w_-]{11})$/;
-		this.playlist_regex = /^((?:PL|LL|FL|UU)[\w_-]+)$/;
 	}
 
 	weak_match(id){
@@ -82,7 +81,7 @@ const youtube = new class Youtube extends APISource{
 
 		list = url.searchParams.get('list');
 
-		if(!this.playlist_regex.exec(list))
+		if(!list)
 			return match;
 		if(!match)
 			match = {};
