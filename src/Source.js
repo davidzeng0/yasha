@@ -75,7 +75,7 @@ const youtube = new class Youtube extends APISource{
 
 		if(url.hostname == 'youtu.be')
 			id = url.pathname.substring(1);
-		else if(url.hostname.match(/(?:www\.)?youtube\.com/) && url.pathname == '/watch')
+		else if((url.hostname == 'www.youtube.com' || url.hostname == 'music.youtube.com' || url.hostname == 'youtube.com') && url.pathname == '/watch')
 			id = url.searchParams.get('v');
 		var match = this.weak_match(id);
 
