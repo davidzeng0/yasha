@@ -22,8 +22,6 @@ Options
 class TrackPlayerOptions{
 	normalize_volume: boolean // On track streams that have a volume parameter, automatically set the volume to that
 
-	// NOTE: These features are highly experimental and may crash the bot!
-
 	external_encrypt: boolean // Use native code to encrypt audio packets before sending them to the voice connection. Only allows one voice connection subscription at a time.
 
 	external_packet_send: boolean // Use native code to send audio packets to the voice connection. external_encrypt must be enabled
