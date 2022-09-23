@@ -87,6 +87,7 @@ const {Source: {Youtube}, Track: {TrackResults}} = require('yasha');
 Youtube.search(input: string): Promise<TrackResults>
 
 // account cookie for age verification
+// Example form: "__Secure-3PSID=COOKIE_CONTENT;__Secure-3PAPISID=COOKIE_CONTENT"
 Youtube.setCookie(cookie: string): void
 ```
 
