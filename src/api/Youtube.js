@@ -437,7 +437,7 @@ const api = new class YoutubeAPI{
 		return results;
 	}
 
-	//Example form: "__Secure-3PSID=cOOKIE_CONTENT;__Secure-3PAPISID=COOKIE_CONTENT"
+	//Example form: "__Secure-3PSID=COOKIE_CONTENT;__Secure-3PAPISID=COOKIE_CONTENT"
 	set_cookie(cookiestr){
 		if(!cookiestr){
 			this.cookie = '';
