@@ -88,6 +88,10 @@ Youtube.search(input: string): Promise<TrackResults>
 
 // account cookie for age verification
 // Example form: "__Secure-3PSID=COOKIE_CONTENT;__Secure-3PAPISID=COOKIE_CONTENT"
+// To get COOKIE_CONTENT, go to youtube, press F12 to go to dev tools, 
+// click Application on Chrome or Storage on Firefox, go to Cookies, https://www.youtube.com, 
+// then go to both __Secure-3PSID and __Secure-3PAPISID, and copy the values.
+// Replace COOKIE_CONTENT in the Example form with the respective values.
 Youtube.setCookie(cookie: string): void
 ```
 
