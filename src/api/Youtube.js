@@ -437,7 +437,6 @@ const api = new class YoutubeAPI{
 		return results;
 	}
 
-	//Example form: "__Secure-3PSID=COOKIE_CONTENT;__Secure-3PAPISID=COOKIE_CONTENT"
 	// Example form: "__Secure-3PSID=COOKIE_CONTENT;__Secure-3PAPISID=COOKIE_CONTENT"
 	// To get COOKIE_CONTENT, go to youtube, press F12 to go to dev tools, 
 	// click Application on Chrome or Storage on Firefox, go to Cookies, https://www.youtube.com, 
