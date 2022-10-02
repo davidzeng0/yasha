@@ -5,6 +5,7 @@ Resolves a track from a string
 ### File.js
 
 Resolve a file track
+
 Returns a track if the string is a valid http(s) or file URL, otherwise `null`
 ```js
 const {Source} = require('yasha');

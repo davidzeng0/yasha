@@ -104,7 +104,9 @@ player.start(): void;
 Has player
 
 TrackPlayer creates an internal player each time a new track is played and destroys it upon a call to cleanup() or a call to destroy().
+
 This function returns true if the player has a non-destroyed internal player.
+
 If this function returns true, functions such as setVolume, isPaused, isCodecCopy, etc... can be used.
 ```js
 player.hasPlayer(): boolean;
@@ -199,6 +201,7 @@ player.stop(): void
 IsCodecCopy
 
 Is true if the player is using minimal CPU by piping the source audio
+
 Is false if the source codec does not match the output codec or filters are on
 ```js
 player.isCodecCopy(): boolean
@@ -207,6 +210,7 @@ player.isCodecCopy(): boolean
 Clean up the internal player
 
 TrackPlayer is still usable for playing new tracks
+
 Useful for when there are no tracks in queue to play so the internal player's memory can be freed
 ```js
 player.cleanup(): void
