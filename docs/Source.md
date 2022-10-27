@@ -87,6 +87,11 @@ const {Source: {Youtube}, Track: {TrackResults}} = require('yasha');
 Youtube.search(input: string): Promise<TrackResults>
 
 // account cookie for age verification
+// Example form: "__Secure-3PSID=SECRET1; __Secure-3PAPISID=SECRET2"
+// To get the secrets, go to youtube, press F12 to go to dev tools,
+// click Application on Chrome or Storage on Firefox, go to Cookies, https://www.youtube.com,
+// then go to both __Secure-3PSID and __Secure-3PAPISID, and copy the values.
+// Replace corresponding values in the example form with the respective values.
 Youtube.setCookie(cookie: string): void
 ```
 
