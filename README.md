@@ -17,7 +17,7 @@ Only compiles on Linux or WSL2+.
 apt install libsodium-dev libtool protobuf-compiler
 
 # install
-npm i git://github.com/ilikdoge/yasha.git
+npm i git://github.com/davidzeng0/yasha.git
 ```
 
 Example usage
