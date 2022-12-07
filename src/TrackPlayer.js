@@ -415,13 +415,10 @@ class TrackPlayer extends EventEmitter{
 		return false;
 	}
 
-	get_best_stream(streams){
-		var volume = streams.volume;
+	get_best_stream_one(streams){
 		var opus = [], audio = [], other = [];
 
 		for(var stream of streams){
-			if(!stream.audio)
-				continue;
 			if(stream.video){
 				other.push(stream);
 
@@ -440,16 +437,23 @@ class TrackPlayer extends EventEmitter{
 			streams = audio;
 		else
 			streams = other;
-		var result = null;
+		if(!streams.length)
+			return null;
+		return streams.reduce((best, cur) => {
+			return cur.bitrate > best.bitrate ? cur : best;
+		});
+	}
 
-		if(streams.length){
-			result = streams.reduce((best, cur) => {
-				return cur.bitrate > best.bitrate ? cur : best;
-			});
+	get_best_stream(streams){
+		var result, volume = streams.volume;
 
+		streams = streams.filter((stream) => stream.audio);
+		result = this.get_best_stream_one(streams.filter((stream) => stream.default_audio_track))
+
+		if(!result)
+			result = this.get_best_stream_one(streams);
+		if(result)
 			result.volume = volume;
-		}
-
 		return result;
 	}
 

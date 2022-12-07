@@ -247,6 +247,7 @@ class YoutubeStreams extends TrackStreams{
 				stream.setTracks(false, true);
 			stream.setBitrate(fmt.bitrate);
 			stream.setMetadata(mime[2], mime[3]);
+			stream.default_audio_track = fmt.audioTrack?.audioIsDefault;
 
 			this.push(stream);
 		}
