@@ -148,14 +148,21 @@ const soundcloud = new class Soundcloud extends APISource{
 			return null;
 		}
 
-		if(url.hostname == 'soundcloud.com' && url.pathname.startsWith('/') && url.pathname.length > 1)
-			return url.href;
+		if(url.pathname.startsWith('/') && url.pathname.length > 1){
+			if(url.hostname == 'soundcloud.com')
+				return {soundcloud: url.href};
+			else if(url.hostname == 'on.soundcloud.com')
+				return {shortlink: url.pathname.substring(1)};
+		}
+
 		return null;
 	}
 
 	async resolve(match){
 		try{
-			return await this.api.resolve(match);
+			if(match.shortlink)
+				return await this.api.resolve_shortlink(match.shortlink);
+			return await this.api.resolve(match.soundcloud);
 		}catch(e){
 			if(e.code == SourceError.codes.NOT_A_TRACK)
 				return null;
