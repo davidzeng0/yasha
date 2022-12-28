@@ -334,6 +334,43 @@ var api = new class SoundcloudAPI{
 		}
 	}
 
+	async resolve_shortlink(id){
+		var res, body, location, url;
+
+		url = 'https://on.soundcloud.com/' + encodeURIComponent(id);
+
+		for(var redirects = 0; redirects < 5; redirects++){
+			res = (await Request.getResponse(url, {redirect: 'manual'})).res;
+
+			try{
+				body = await res.text();
+			}catch(e){
+				if(!res.ok)
+					throw new SourceError.INTERNAL_ERROR(null, e);
+				throw new SourceError.NETWORK_ERROR(null, e);
+			}
+
+			if(res.status == 404)
+				throw new SourceError.NOT_FOUND();
+			if(res.status != 302 || !res.headers.has('Location'))
+				throw new SourceError.INTERNAL_ERROR(null, new Error(body));
+			location = res.headers.get('Location');
+
+			try{
+				location = new URL(location, 'https://on.soundcloud.com/');
+			}catch(e){
+				throw new SourceError.INVALID_RESPONSE('Invalid redirect URL', new Error('Response URL: ' + location));
+			}
+
+			url = location.href;
+
+			if(location.hostname == 'soundcloud.com' && location.pathname.startsWith('/') && location.pathname.length > 1)
+				return this.resolve(url);
+		}
+
+		throw new SourceError.INVALID_RESPONSE('Too many redirects');
+	}
+
 	check_valid_id(id){
 		if(!/^[\d]+$/.test(id))
 			throw new SourceError.NOT_FOUND();
