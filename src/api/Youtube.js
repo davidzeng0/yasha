@@ -494,87 +494,90 @@ const api = new class YoutubeAPI{
 		return 0;
 	}
 
-	track_match_artist(track, result){
-		for(var artist of track.artists){
-			if(result.artists){
-				if(result.artists.includes(artist))
-					return true;
-			}else if(this.string_word_match(result.author, artist) > 0){
-				return true;
-			}
+	track_match_score(track, result){
+		var score = 0;
+
+		if(track.duration != -1 && result.duration != -1){
+			var diff = Math.abs(Math.round(track.duration) - Math.round(result.duration));
+
+			if(diff > 5)
+				return 0;
+			score += 5 - diff;
 		}
 
-		return false;
-	}
+		var length = Math.max(track.artists.length, result.artists ? result.artists.length : 1);
 
-	track_match_title(track, result){
-		return this.string_word_match(result.title, track.title) > 0;
-	}
+		for(var artist of track.artists){
+			artist = artist.toLowerCase();
 
-	track_match_best_result(results, track, aggressive = false){
-		var duration_match = null;
-		var track_match = null;
+			if(!result.artists){
+				if(this.string_word_match(result.author, artist) > 0){
+					score += 5 * (artist.length / result.author.length);
 
-		if(results.top_result && results.top_result.type == 'song')
-			return results.top_result;
-		if(results.songs){
-			for(var song of results.songs){
-				if(this.track_match_artist(track, song) && this.track_match_title(track, song)){
-					return song;
+					break;
+				}
+			}else for(var result_artist of result.artists){
+				if(result_artist.toLowerCase() == artist){
+					score += 5 / length;
+
+					break;
 				}
 			}
 		}
 
-		if(results.top_result)
-			return results.top_result;
-		for(var result of results){
-			if(this.track_match_artist(track, result) && this.track_match_title(track, result))
-				track_match = result;
-			if(!duration_match && track.duration != -1 && result.duration != -1 && Math.abs(result.duration - track.duration) < 5){
-				duration_match = result;
+		score += 5 * this.string_word_match(result.title, track.title) / result.title.length;
 
-				if(this.track_match_title(track, result))
-					return duration_match;
-			}
+		return score / 15;
+	}
+
+	track_match_best(results, track){
+		for(var i = 0; i < results.length; i++){
+			results[i] = {
+				score: this.track_match_score(track, results[i]),
+				track: results[i]
+			};
 		}
 
-		if(track_match)
-			return track_match;
-		if(aggressive)
-			return null;
-		return duration_match;
+		results = results.filter(match => match.score >= 0.5);
+		results.sort((a, b) => b.score - a.score);
+
+		return results.length ? results[0].track : null;
+	}
+
+	track_match_best_result(results, track){
+		var list = [], result;
+
+		if(results.top_result)
+			list.push(results.top_result);
+		if(results.songs)
+			list.push(...results.songs);
+		result = this.track_match_best(list, track);
+
+		if(result)
+			return result;
+		return this.track_match_best(results, track);
 	}
 
 	async track_match_lookup(track){
-		var title = track.artists.join(' ') + ' ' + track.title;
+		var title = [...track.artists, track.title].join(' ');
 		var results = await music.search(title);
 		var expmatch = results.filter((t) => t.explicit == track.explicit);
-		var match = null;
 
 		if(results.top_result && results.top_result.explicit == track.explicit)
 			expmatch.top_result = results.top_result;
 		if(results.songs)
 			expmatch.songs = results.songs.filter((t) => t.explicit == track.explicit);
-		try{
-			match = this.track_match_best_result(expmatch, track, true);
+		var match = this.track_match_best_result(expmatch, track);
 
-			if(match && (match.type != 'video' || match.duration == -1 || track.duration == -1 || Math.abs(match.duration - track.duration) <= 5))
-				return match;
-			match = this.track_match_best_result(results, track, false);
+		if(match)
+			return match;
+		match = this.track_match_best_result(results, track);
 
-			if(match && (match.type != 'video' || match.duration == -1 || track.duration == -1 || Math.abs(match.duration - track.duration) <= 5))
-				return match;
-		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
-		}
-
+		if(match)
+			return match;
 		results = await this.search(title);
 
-		try{
-			return this.track_match_best_result(results, track);
-		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
-		}
+		return this.track_match_best_result(results, track);
 	}
 
 	async track_match(track){
@@ -582,7 +585,7 @@ const api = new class YoutubeAPI{
 			try{
 				return await this.get_streams(track.youtube_id);
 			}catch(e){
-
+				/* continue */
 			}
 		}
 
