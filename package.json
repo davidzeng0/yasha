@@ -3,14 +3,13 @@
 	"name": "yasha",
 	"version": "1.0.0",
 	"dependencies": {
-		"discord.js": "^13.3.0",
-		"node-fetch": "^2.6.6",
-		"sodium": "^3.0.2",
 		"@discordjs/voice": "^0.7.2",
+		"discord.js": "^14.7.1",
+		"google-protobuf": "^3.19.2",
+		"node-fetch": "^2.6.6",
 		"sange": "github:davidzeng0/sange",
-		"google-protobuf": "^3.19.2"
+		"sodium": "^3.0.2"
 	},
-
 	"scripts": {
 		"proto": "mkdir -p proto/build; protoc --proto_path=proto --js_out=import_style=commonjs,binary:proto/build youtube.proto",
 		"install": "npm run proto",
