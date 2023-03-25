@@ -40,9 +40,10 @@ Sample code
 const Discord = require('discord.js');
 const client = new Discord.Client({
 	intents: [
-		Discord.Intents.FLAGS.GUILDS,
-		Discord.Intents.FLAGS.GUILD_MESSAGES,
-		Discord.Intents.FLAGS.GUILD_VOICE_STATES
+		Discord.GatewayIntentBits.Guilds,
+		Discord.GatewayIntentBits.GuildMessages,
+		Discord.GatewayIntentBits.GuildVoiceStates,
+		Discord.GatewayIntentBits.MessageContent
 	]
 });
 
@@ -52,7 +53,7 @@ client.on('ready', () => {
 	console.log('Ready!');
 });
 
-client.on('message', async (message) => {
+client.on('messageCreate', async (message) => {
 	if(message.content == 'play a song!'){
 		var connection = await VoiceConnection.connect(message.member.voice.channel); // see docs/VoiceConnection.md
 		var player = new TrackPlayer(); // see docs/TrackPlayer.md
