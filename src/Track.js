@@ -137,40 +137,23 @@ class TrackPlaylist extends TrackResults{
 	}
 
 	async load(){
-		var result = null;
-		var first_track = this.firstTrack;
-
-		if(first_track){
-			for(var i = 0; i < this.length; i++){
-				if(this[i].equals(first_track)){
-					first_track = null;
-
-					if(i != 0){
-						this.splice(i, 1);
-						this.unshift(first_track);
-					}
-
-					break;
-				}
-			}
-		}
+		var result;
 
 		result = await this.next();
 
 		while(result && result.length){
-			if(first_track){
-				for(var i = 0; i < result.length; i++)
-					if(result[i].equals(first_track)){
-						result.splice(i, 1);
-						first_track = null;
-
-						break;
-					}
-			}
-
 			this.push(...result);
 
 			result = await result.next();
+		}
+
+		if(this.firstTrack){
+			var index = this.findIndex(track => track.equals(this.firstTrack));
+
+			if(index == -1)
+				this.unshift(this.firstTrack);
+			else
+				this.splice(0, index);
 		}
 
 		return this;
