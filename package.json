@@ -3,7 +3,7 @@
 	"name": "yasha",
 	"version": "2.1.0",
 	"dependencies": {
-		"@discordjs/voice": "github:davidzeng0/voice",
+		"@discordjs/voice": "github:davidzeng0/voice#dist",
 		"discord.js": "^14.7.1",
 		"google-protobuf": "^3.19.2",
 		"node-fetch": "^2.6.6",
