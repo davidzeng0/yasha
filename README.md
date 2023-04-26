@@ -55,10 +55,14 @@ client.on('ready', () => {
 
 client.on('messageCreate', async (message) => {
 	if(message.content == 'play a song!'){
-		var connection = await VoiceConnection.connect(message.member.voice.channel); // see docs/VoiceConnection.md
-		var player = new TrackPlayer(); // see docs/TrackPlayer.md
+		// see docs/VoiceConnection.md
+		var connection = await VoiceConnection.connect(message.member.voice.channel);
 
-		var track = await Source.resolve('https://www.youtube.com/watch?v=dQw4w9WgXcQ'); // see docs/Source.md
+		// see docs/TrackPlayer.md
+		var player = new TrackPlayer();
+
+		// see docs/Source.md
+		var track = await Source.resolve('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 
 		connection.subscribe(player);
 		player.play(track);
