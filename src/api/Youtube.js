@@ -283,9 +283,9 @@ const api = new class YoutubeAPI{
 			body.contentCheckOk = true;
 			body.racyCheckOk = true;
 			body.context.client.clientName = 'ANDROID';
-			body.context.client.clientVersion = '17.14.2';
+			body.context.client.clientVersion = '18.15.35';
 			body.context.client.androidSdkVersion = 33;
-			options.headers['User-Agent'] = 'com.google.android.youtube/version';
+			options.headers['User-Agent'] = 'com.google.android.youtube/18.15.35';
 		}
 
 		if(this.sapisid){
