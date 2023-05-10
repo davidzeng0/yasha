@@ -3,15 +3,15 @@ const {
 	search_sort, search_filters, search, search_continuation, search_options
 } = require('./build/youtube_pb');
 
-function bin_b64(binary){
-	return Buffer.from(binary).toString('base64').replaceAll('+', '-').replaceAll('/', '_');
+function binary_to_b64_no_pad(binary){
+	return Buffer.from(binary).toString('base64url');
 }
 
-function binary_to_b64_no_pad(binary){
-	var str = bin_b64(binary),
-		index = str.indexOf('=');
-	if(index != -1)
-		str = str.substring(0, index);
+function bin_b64(binary){
+	var str = binary_to_b64_no_pad(binary);
+
+	while(str.length & 3)
+		str += '=';
 	return str;
 }
 
@@ -19,7 +19,32 @@ function binary_to_b64url(binary){
 	return encodeURIComponent(bin_b64(binary));
 }
 
+function b64url_to_binary(input){
+	return Buffer.from(decodeURIComponent(input), 'base64');
+}
+
 module.exports = {
+	playlist_next_offset(continuation){
+		var p = playlist.deserializeBinary(b64url_to_binary(continuation));
+		var cont = p.getContinuation();
+
+		if(!cont)
+			return undefined;
+		var params = cont.getParams();
+
+		if(!params)
+			return undefined;
+		params = playlist_params.deserializeBinary(b64url_to_binary(params));
+
+		var offset = params.getOffset();
+
+		if(!offset)
+			return undefined;
+		var p_offset = playlist_offset.deserializeBinary(b64url_to_binary(offset.substring('PT:'.length)));
+
+		return p_offset.getOffset();
+	},
+
 	gen_playlist_continuation(id, offset){
 		var p_offset = new playlist_offset(), p_params = new playlist_params(),
 			p_cont = new playlist.playlist_continuation(), p = new playlist();
