@@ -3,7 +3,7 @@ const Request = require('../Request');
 const SourceError = require('../SourceError');
 
 const {Track, TrackImage, TrackResults, TrackPlaylist, TrackStream, TrackStreams} = require('../Track');
-const {gen_playlist_continuation, gen_search_options} = require('../../proto/youtube');
+const {gen_playlist_continuation, gen_search_options, playlist_next_offset} = require('../../proto/youtube');
 
 function get_property(array, prop){
 	if(!(array instanceof Array))
@@ -174,7 +174,7 @@ class YoutubePlaylist extends TrackPlaylist{
 
 		for(var item of data){
 			if(item.continuationItemRenderer)
-				this.next_offset = offset + this.length;
+				this.next_offset = playlist_next_offset(item.continuationItemRenderer.continuationEndpoint.continuationCommand.token);
 			else if(item.playlistVideoRenderer)
 				this.push(new YoutubeTrack().from_playlist(item.playlistVideoRenderer));
 		}
