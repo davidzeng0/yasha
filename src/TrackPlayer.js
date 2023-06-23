@@ -80,7 +80,7 @@ class TrackPlayer extends EventEmitter{
 			connection.on('stateChange', this.onstatechange);
 		}
 
-		var subscription = new Subscription(connection, this);
+		const subscription = new Subscription(connection, this);
 
 		this.subscriptions.push(subscription);
 
@@ -90,7 +90,7 @@ class TrackPlayer extends EventEmitter{
 	}
 
 	unsubscribe(subscription){
-		var index = this.subscriptions.indexOf(subscription);
+		const index = this.subscriptions.indexOf(subscription);
 
 		if(index == -1)
 			return;
@@ -150,9 +150,9 @@ class TrackPlayer extends EventEmitter{
 		if(!this.external_encrypt || !this.player)
 			return;
 		if(this.secretbox_ready()){
-			var connection_data = this.get_connection_data(),
+			const connection_data = this.get_connection_data(),
 				udp = this.get_connection_udp();
-			var mode;
+			let mode;
 
 			switch(connection_data.encryptionMode){
 				case 'xsalsa20_poly1305_lite':
@@ -169,7 +169,7 @@ class TrackPlayer extends EventEmitter{
 					break;
 			}
 
-			var data = this.get_connection_data();
+			const data = this.get_connection_data();
 
 			try{
 				this.player.ffplayer.setSecretBox(connection_data.secretKey, mode, connection_data.ssrc);
@@ -230,7 +230,7 @@ class TrackPlayer extends EventEmitter{
 	}
 
 	async load_streams(){
-		var streams, play_id = this.play_id;
+		let streams, play_id = this.play_id;
 
 		if(this.track.streams && !this.track.streams.expired())
 			streams = this.track.streams;
@@ -273,16 +273,16 @@ class TrackPlayer extends EventEmitter{
 	}
 
 	send(buffer, frame_size, is_silence){
-		var subscriptions = this.subscriptions, connection;
+		const subscriptions = this.subscriptions, connection;
 
-		for(var i = 0; i < subscriptions.length; i++){
+		for(let i = 0; i < subscriptions.length; i++){
 			connection = subscriptions[i].connection;
 
 			if(!connection.ready())
 				continue;
 			connection.setSpeaking(true);
 
-			var state = connection.state.networking.state,
+			const state = connection.state.networking.state,
 				connection_data = state.connectionData,
 				mode = connection_data.encryption_mode;
 			if(this.external_encrypt && !is_silence){
@@ -321,7 +321,7 @@ class TrackPlayer extends EventEmitter{
 			audio_buffer.writeUIntBE(connection_data.timestamp, 4, 4);
 			audio_buffer.writeUIntBE(connection_data.ssrc, 8, 4);
 
-			var len, buf;
+			let len, buf;
 
 			switch(mode){
 				case EncryptionMode.LITE:
@@ -362,7 +362,7 @@ class TrackPlayer extends EventEmitter{
 
 		if(this.player && this.external_encrypt && this.secretbox_ready()){
 			/* restore modified secretbox state from the player */
-			var box = this.player.ffplayer.getSecretBox(),
+			const box = this.player.ffplayer.getSecretBox(),
 				data = this.get_connection_data();
 			data.nonce = box.nonce;
 			data.timestamp = box.timestamp;
@@ -376,7 +376,7 @@ class TrackPlayer extends EventEmitter{
 
 			if(this.player && this.external_encrypt && this.secretbox_ready()){
 				/* save modified secretbox state to the player */
-				var data = this.get_connection_data();
+				const data = this.get_connection_data();
 
 				this.player.ffplayer.updateSecretBox(data.sequence, data.timestamp, data.nonce);
 			}
@@ -416,9 +416,9 @@ class TrackPlayer extends EventEmitter{
 	}
 
 	get_best_stream_one(streams){
-		var opus = [], audio = [], other = [];
+		const opus = [], audio = [], other = [];
 
-		for(var stream of streams){
+		for(const stream of streams){
 			if(stream.video){
 				other.push(stream);
 
@@ -445,7 +445,7 @@ class TrackPlayer extends EventEmitter{
 	}
 
 	get_best_stream(streams){
-		var result, volume = streams.volume;
+		let result, volume = streams.volume;
 
 		streams = streams.filter((stream) => stream.audio);
 		result = this.get_best_stream_one(streams.filter((stream) => stream.default_audio_track))

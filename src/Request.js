@@ -11,7 +11,7 @@ async function fetch(url, opts = {}){
 
 module.exports = new class{
 	async getResponse(url, options){
-		var res;
+		let res;
 
 		try{
 			res = await fetch(url, options);
@@ -25,7 +25,7 @@ module.exports = new class{
 	async get(url, options){
 		const {res} = await this.getResponse(url, options);
 
-		var body;
+		let body;
 
 		try{
 			body = await res.text();
@@ -55,7 +55,7 @@ module.exports = new class{
 	async getBuffer(url, options){
 		const {res} = await this.getResponse(url, options);
 
-		var body;
+		let body;
 
 		try{
 			body = await res.buffer();

@@ -48,8 +48,8 @@ Subscribe (see @discordjs/voice subscribe documentation)
 ```js
 const {TrackPlayer} = require('yasha');
 
-var player = new TrackPlayer();
-var subscription = connection.subscribe(player);
+const player = new TrackPlayer();
+const subscription = connection.subscribe(player);
 ```
 
 Unubscribe
@@ -62,7 +62,7 @@ Rejoin
 ```js
 const {VoiceChannel} = require('discord.js');
 
-var connection = await VoiceConnection.connect(...);
+const connection = await VoiceConnection.connect(...);
 
 connection.rejoin(channel: VoiceChannel): void
 ```
@@ -70,7 +70,7 @@ connection.rejoin(channel: VoiceChannel): void
 Disconnect/Destroy
 
 ```js
-var connection = await VoiceConnection.connect(...);
+const connection = await VoiceConnection.connect(...);
 
 connection.disconnect(): void // alias for destroy
 connection.destroy(): void
@@ -79,7 +79,7 @@ connection.destroy(): void
 Ready
 
 ```js
-var connection = await VoiceConnection.connect(...);
+const connection = await VoiceConnection.connect(...);
 
 connection.ready(): boolean; // whether the connection is ready
 ```

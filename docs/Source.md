@@ -7,22 +7,22 @@ Resolves a track from a string
 ```js
 const {Source} = require('yasha');
 
-var track = await Source.resolve('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+const track = await Source.resolve('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 ```
 
 ```js
 const {Source, Track: {TrackPlaylist}} = require('yasha');
 
-var playlist = await Source.resolve('https://www.youtube.com/playlist?list=yourPLAYLISTidHERE');
+const playlist = await Source.resolve('https://www.youtube.com/playlist?list=yourPLAYLISTidHERE');
 
 console.log(playlist instanceof TrackPlaylist); // true
 ```
 
 ```js
-var result = await Source.resolve(input);
+const result = await Source.resolve(input);
 
 if(result instanceof TrackPlaylist){
-	var list = await result.load();
+	const list = await result.load();
 
 	console.log(`Loaded ${list.length} tracks`);
 
@@ -31,14 +31,14 @@ if(result instanceof TrackPlaylist){
 	// aka offset = 0 or continuation = null or resolved from Source
 	console.log(`Found playlist ${result.title} ${result.url}`);
 
-	var first_track = result.firstTrack;
-	var list: Track[] = [];
+	const first_track = result.firstTrack;
+	let list: Track[] = [];
 
 	if(first_track)
 		list.push(first_track);
 	while(result && result.length){
 		if(first_track){
-			for(var i = 0; i < result.length; i++){
+			for(let i = 0; i < result.length; i++){
 				if(result[i].equals(first_track)){
 					result.splice(i, 1);
 					first_track = null;

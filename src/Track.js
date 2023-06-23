@@ -137,7 +137,7 @@ class TrackPlaylist extends TrackResults{
 	}
 
 	async load(){
-		var result;
+		let result;
 
 		result = await this.next();
 
@@ -148,7 +148,7 @@ class TrackPlaylist extends TrackResults{
 		}
 
 		if(this.firstTrack){
-			var index = this.findIndex(track => track.equals(this.firstTrack));
+			const index = this.findIndex(track => track.equals(this.firstTrack));
 
 			if(index == -1)
 				this.unshift(this.firstTrack);
@@ -174,7 +174,7 @@ class TrackImage{
 	static from(array){
 		if(!array)
 			return [];
-		for(var i = 0; i < array.length; i++)
+		for(let i = 0; i < array.length; i++)
 			array[i] = new TrackImage(array[i].url, array[i].width, array[i].height);
 		return array;
 	}

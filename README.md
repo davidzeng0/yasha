@@ -29,10 +29,10 @@ Example usage
 ```js
 // designed to work with discord.js v13+ and uses discordjs/voice internally for voice connections
 
-var connection = await VoiceConnection.connect(voiceChannel); // see docs/VoiceConnection.md
-var player = new TrackPlayer(); // see docs/TrackPlayer.md
+const connection = await VoiceConnection.connect(voiceChannel); // see docs/VoiceConnection.md
+const player = new TrackPlayer(); // see docs/TrackPlayer.md
 
-var track = await Source.resolve('https://www.youtube.com/watch?v=dQw4w9WgXcQ'); // see docs/Source.md
+const track = await Source.resolve('https://www.youtube.com/watch?v=dQw4w9WgXcQ'); // see docs/Source.md
 
 connection.subscribe(player);
 player.play(track);
@@ -60,13 +60,13 @@ client.on('ready', () => {
 client.on('messageCreate', async (message) => {
 	if(message.content == 'play a song!'){
 		// see docs/VoiceConnection.md
-		var connection = await VoiceConnection.connect(message.member.voice.channel);
+		const connection = await VoiceConnection.connect(message.member.voice.channel);
 
 		// see docs/TrackPlayer.md
-		var player = new TrackPlayer();
+		const player = new TrackPlayer();
 
 		// see docs/Source.md
-		var track = await Source.resolve('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+		const track = await Source.resolve('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 
 		connection.subscribe(player);
 		player.play(track);

@@ -63,7 +63,7 @@ const youtube = new class Youtube extends APISource{
 	}
 
 	match(content){
-		var url;
+		let url;
 
 		try{
 			url = new URL(content);
@@ -71,13 +71,13 @@ const youtube = new class Youtube extends APISource{
 			return null;
 		}
 
-		var id = null, list = null;
+		let id = null, list = null;
 
 		if(url.hostname == 'youtu.be')
 			id = url.pathname.substring(1);
 		else if((url.hostname == 'www.youtube.com' || url.hostname == 'music.youtube.com' || url.hostname == 'youtube.com') && url.pathname == '/watch')
 			id = url.searchParams.get('v');
-		var match = this.weak_match(id);
+		let match = this.weak_match(id);
 
 		list = url.searchParams.get('list');
 
@@ -91,13 +91,13 @@ const youtube = new class Youtube extends APISource{
 	}
 
 	async resolve(match){
-		var track = null, list = null;
+		let track = null, list = null;
 
 		if(match.id)
 			track = this.api.get(match.id);
 		if(match.list)
 			list = this.api.playlist_once(match.list);
-		var result = await Promise.allSettled([track, list]);
+		const result = await Promise.allSettled([track, list]);
 
 		track = result[0].value;
 		list = result[1].value;
@@ -140,7 +140,7 @@ const soundcloud = new class Soundcloud extends APISource{
 	}
 
 	match(content){
-		var url;
+		let url;
 
 		try{
 			url = new URL(content);
@@ -185,7 +185,7 @@ const spotify = new class Spotify extends APISource{
 	}
 
 	match(content){
-		var url;
+		let url;
 
 		try{
 			url = new URL(content);
@@ -194,7 +194,7 @@ const spotify = new class Spotify extends APISource{
 		}
 
 		if(url.hostname == 'open.spotify.com' && url.pathname.startsWith('/') && url.pathname.length > 1){
-			var data = url.pathname.substring(1).split('/');
+			const data = url.pathname.substring(1).split('/');
 
 			if(data.length != 2)
 				return null;
@@ -243,7 +243,7 @@ const apple = new class AppleMusic extends APISource{
 	}
 
 	match(content){
-		var url;
+		let url;
 
 		try{
 			url = new URL(content);
@@ -252,7 +252,7 @@ const apple = new class AppleMusic extends APISource{
 		}
 
 		if(url.hostname == 'music.apple.com' && url.pathname.startsWith('/') && url.pathname.length > 1){
-			var path = url.pathname.substring(1).split('/');
+			const path = url.pathname.substring(1).split('/');
 
 			if(path.length < 2)
 				return null;
@@ -266,7 +266,7 @@ const apple = new class AppleMusic extends APISource{
 				case 'playlist':
 					return {playlist: path[2] ?? path[1]};
 				case 'album':
-					var track = url.searchParams.get('i');
+					const track = url.searchParams.get('i');
 
 					if(track)
 						return {track};
@@ -305,7 +305,7 @@ const file = new class File extends APISource{
 	}
 
 	resolve(content){
-		var url;
+		let url;
 
 		try{
 			url = new URL(content);
@@ -323,15 +323,15 @@ const file = new class File extends APISource{
 
 class Source{
 	static resolve(input, weak = true){
-		var sources = [youtube, soundcloud, spotify, apple];
-		var match = null;
+		const sources = [youtube, soundcloud, spotify, apple];
+		let match = null;
 
-		for(var source of sources)
+		for(const source of sources)
 			if(match = source.match(input))
 				return source.resolve(match);
 		if(!weak)
 			return null;
-		for(var source of sources)
+		for(const source of sources)
 			if(match = source.weak_match(input))
 				return source.weak_resolve(match);
 		return null;

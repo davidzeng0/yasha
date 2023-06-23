@@ -165,7 +165,7 @@ class VoiceConnection extends voice.VoiceConnection{
 	static async connect(channel, options = {}){
 		if(!channel.joinable)
 			throw new Error(channel.full ? 'Channel is full' : 'No permissions');
-		var connection = channel.guild.voice_connection;
+		let connection = channel.guild.voice_connection;
 
 		if(!connection)
 			connection = new VoiceConnection(channel, options);
@@ -193,9 +193,9 @@ class VoiceConnection extends voice.VoiceConnection{
 
 		if(!guild.me.voice.channel)
 			return false;
-		var {rejoin, disconnect} = voice.VoiceConnection.prototype;
+		const {rejoin, disconnect} = voice.VoiceConnection.prototype;
 
-		var dummy = {
+		const dummy = {
 			state: {
 				status: VoiceConnectionStatus.ready,
 				adapter: guild.voiceAdapterCreator({

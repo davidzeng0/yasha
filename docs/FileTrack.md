@@ -10,13 +10,13 @@ Returns a track if the string is a valid http(s) or file URL, otherwise `null`
 ```js
 const {Source} = require('yasha');
 
-var track = await Source.File.resolve('https://www.example.com/audio.mp4');
+const track1 = await Source.File.resolve('https://www.example.com/audio.mp4');
 
-assert(track.isLocalFile == false);
+assert(track1.isLocalFile == false);
 
-var track = await Source.File.resolve('file:///path/to/your/file');
+const track2 = await Source.File.resolve('file:///path/to/your/file');
 
-assert(track.isLocalFile == true);
+assert(track2.isLocalFile == true);
 
 ```
 
@@ -25,5 +25,5 @@ Create a new file track
 ```js
 const {Source} = require('yasha');
 
-var track = new Source.File.Track('https://www.example.com/audio.mp4');
+const track = new Source.File.Track('https://www.example.com/audio.mp4');
 ```

@@ -8,7 +8,7 @@ const {gen_playlist_continuation, gen_search_options, playlist_next_offset} = re
 function get_property(array, prop){
 	if(!(array instanceof Array))
 		return null;
-	for(var item of array)
+	for(const item of array)
 		if(item && item[prop])
 			return item[prop];
 	return null;
@@ -27,7 +27,7 @@ function text(txt){
 function check_playable(st){
 	if(!st)
 		return;
-	var {status, reason} = st;
+		const {status, reason} = st;
 
 	if(!status)
 		return;
@@ -59,14 +59,14 @@ function number(n){
 }
 
 function parse_timestamp(str){
-	var tokens = str.split(':').map(token => parseInt(token));
+	const tokens = str.split(':').map(token => parseInt(token));
 
-	var scale = [1, 60, 3600, 86400];
-	var seconds = 0;
+	const scale = [1, 60, 3600, 86400];
+	let seconds = 0;
 
 	if(tokens.length > scale.length)
 		return -1;
-	for(var i = tokens.length - 1; i >= 0; i--){
+	for(let i = tokens.length - 1; i >= 0; i--){
 		if(!Number.isInteger(tokens[i]))
 			return -1;
 		seconds += tokens[i] * scale[Math.min(3, tokens.length - i - 1)];
@@ -99,7 +99,7 @@ class YoutubeTrack extends Track{
 	}
 
 	from_search(track){
-		var thumbnails;
+		let thumbnails;
 
 		if(track.channelThumbnailSupportedRenderers)
 			thumbnails = track.channelThumbnailSupportedRenderers.channelThumbnailWithLinkRenderer.thumbnail.thumbnails;
@@ -143,7 +143,7 @@ class YoutubeTrack extends Track{
 
 class YoutubeResults extends TrackResults{
 	process(body){
-		for(var item of body){
+		for(const item of body){
 			if(item.continuationItemRenderer)
 				this.set_continuation(item.continuationItemRenderer.continuationEndpoint.continuationCommand.token);
 			else if(item.itemSectionRenderer)
@@ -152,7 +152,7 @@ class YoutubeResults extends TrackResults{
 	}
 
 	extract_tracks(list){
-		for(var video of list)
+		for(const video of list)
 			if(video.videoRenderer)
 				this.push(new YoutubeTrack().from_search(video.videoRenderer));
 	}
@@ -172,7 +172,7 @@ class YoutubePlaylist extends TrackPlaylist{
 	process(id, data, offset){
 		this.id = id;
 
-		for(var item of data){
+		for(const item of data){
 			if(item.continuationItemRenderer)
 				this.next_offset = playlist_next_offset(item.continuationItemRenderer.continuationEndpoint.continuationCommand.token);
 			else if(item.playlistVideoRenderer)
@@ -205,11 +205,11 @@ class YoutubeStream extends TrackStream{
 
 class YoutubeStreams extends TrackStreams{
 	from(start, playerResponse){
-		var loudness = 0;
+		let loudness = 0;
 
 		if(playerResponse.playerConfig?.audioConfig?.loudnessDb)
 			loudness = playerResponse.playerConfig.audioConfig.loudnessDb;
-		var {formats, adaptiveFormats, expiresInSeconds} = playerResponse.streamingData;
+		const {formats, adaptiveFormats, expiresInSeconds} = playerResponse.streamingData;
 
 		if(!this.live && formats)
 			this.extract_streams(formats, false);
@@ -226,16 +226,16 @@ class YoutubeStreams extends TrackStreams{
 	}
 
 	extract_streams(streams, adaptive){
-		for(var fmt of streams){
+		for(const fmt of streams){
 			if(fmt.type == 'FORMAT_STREAM_TYPE_OTF')
 				continue;
-			var stream = new YoutubeStream(fmt.url, fmt.itag);
+				const stream = new YoutubeStream(fmt.url, fmt.itag);
 
 			if(this.live && adaptive)
 				stream.setDuration(fmt.targetDurationSec);
 			else
 				stream.setDuration(parseInt(fmt.approxDurationMs, 10) / 1000);
-			var mime = /(video|audio)\/([a-zA-Z0-9]{3,4});(?:\+| )codecs="(.*?)"/.exec(fmt.mimeType);
+			const mime = /(video|audio)\/([a-zA-Z0-9]{3,4});(?:\+| )codecs="(.*?)"/.exec(fmt.mimeType);
 
 			if(!mime)
 				continue;
@@ -272,8 +272,8 @@ const api = new class YoutubeAPI{
 
 	async api_request(path, body = {}, query = '', origin = 'www'){
 		/* youtube v1 api */
-		var time = Date.now();
-		var options = {headers: {}};
+		let time = Date.now();
+		const options = {headers: {}};
 
 		body.context = {client: {...this.innertube_client}};
 		options.method = 'POST';
@@ -289,7 +289,7 @@ const api = new class YoutubeAPI{
 		}
 
 		if(this.sapisid){
-			var hash;
+			let hash;
 
 			time = Math.floor(time / 1000);
 			hash = crypto.createHash('sha1').update(`${time} ${this.sapisid} https://${origin}.youtube.com`).digest('hex');
@@ -300,8 +300,8 @@ const api = new class YoutubeAPI{
 
 		options.body = JSON.stringify(body);
 
-		var {res} = await Request.getResponse(`https://${origin}.youtube.com/youtubei/v1/${path}?key=${this.innertube_key}${query}&prettyPrint=false`, options);
-		var body;
+		const {res} = await Request.getResponse(`https://${origin}.youtube.com/youtubei/v1/${path}?key=${this.innertube_key}${query}&prettyPrint=false`, options);
+		let body;
 
 		try{
 			body = await res.text();
@@ -325,8 +325,8 @@ const api = new class YoutubeAPI{
 	}
 
 	async get(id){
-		var start = Date.now();
-		var responses = [
+		const start = Date.now();
+		let responses = [
 			this.api_request('next', {videoId: id}),
 			this.api_request('player', {videoId: id})
 		];
@@ -340,17 +340,17 @@ const api = new class YoutubeAPI{
 		}
 
 
-		var response = responses[0];
-		var player_response = responses[1];
+		const response = responses[0];
+		const player_response = responses[1];
 
 		if(!response || !player_response)
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing data'));
 		check_playable(player_response.playabilityStatus);
 
-		var video_details = player_response.videoDetails;
+		const video_details = player_response.videoDetails;
 
 		try{
-			var author = get_property(response.contents.twoColumnWatchNextResults.results.results.contents, 'videoSecondaryInfoRenderer').owner.videoOwnerRenderer;
+			const author = get_property(response.contents.twoColumnWatchNextResults.results.results.contents, 'videoSecondaryInfoRenderer').owner.videoOwnerRenderer;
 
 			return new YoutubeTrack().from(video_details, author, new YoutubeStreams().from(start, player_response));
 		}catch(e){
@@ -359,8 +359,8 @@ const api = new class YoutubeAPI{
 	}
 
 	async get_streams(id){
-		var start = Date.now();
-		var player_response = await this.api_request('player', {videoId: id});
+		const start = Date.now();
+		const player_response = await this.api_request('player', {videoId: id});
 
 		if(!player_response)
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing data'));
@@ -374,15 +374,15 @@ const api = new class YoutubeAPI{
 	}
 
 	async playlist_once(id, start = 0){
-		var results = new YoutubePlaylist();
-		var data = await this.api_request('browse', {continuation: gen_playlist_continuation(id, start)});
+		const results = new YoutubePlaylist();
+		const data = await this.api_request('browse', {continuation: gen_playlist_continuation(id, start)});
 
 		if(!data.sidebar)
 			throw new SourceError.NOT_FOUND('Playlist not found');
 		if(!data.onResponseReceivedActions)
 			return results;
 		try{
-			var details = get_property(data.sidebar.playlistSidebarRenderer.items, 'playlistSidebarPrimaryInfoRenderer');
+			const details = get_property(data.sidebar.playlistSidebarRenderer.items, 'playlistSidebarPrimaryInfoRenderer');
 
 			results.setMetadata(text(details.title), text(details.description));
 			results.process(id, data.onResponseReceivedActions[0].appendContinuationItemsAction.continuationItems, start);
@@ -394,11 +394,11 @@ const api = new class YoutubeAPI{
 	}
 
 	async playlist(id, limit){
-		var list = null;
-		var offset = 0;
+		let list = null;
+		let offset = 0;
 
 		do{
-			var result = await this.playlist_once(id, offset);
+			const result = await this.playlist_once(id, offset);
 
 			if(!list)
 				list = result;
@@ -411,7 +411,7 @@ const api = new class YoutubeAPI{
 	}
 
 	async search(query, continuation){
-		var body = await this.api_request('search', continuation ? {continuation} : {query, params: gen_search_options({type: 'video'})});
+		let body = await this.api_request('search', continuation ? {continuation} : {query, params: gen_search_options({type: 'video'})});
 
 		if(continuation){
 			if(!body.onResponseReceivedCommands)
@@ -429,7 +429,7 @@ const api = new class YoutubeAPI{
 			}
 		}
 
-		var results = new YoutubeResults();
+		const results = new YoutubeResults();
 
 		try{
 			results.process(body);
@@ -448,10 +448,10 @@ const api = new class YoutubeAPI{
 			return;
 		}
 
-		var cookies = cookiestr.split(';');
-		var sapisid = null;
+		const cookies = cookiestr.split(';');
+		let sapisid = null;
 
-		for(var cookie of cookies){
+		for(const cookie of cookies){
 			cookie = cookie.trim().split('=');
 
 			if(cookie[0] == '__Secure-3PAPISID')
@@ -470,17 +470,17 @@ const api = new class YoutubeAPI{
 	}
 
 	string_word_match(big, small){
-		var boundary = (c) => /[\s\W]/g.test(c);
+		const boundary = (c) => /[\s\W]/g.test(c);
 
 		big = big.toLowerCase();
 		small = small.toLowerCase();
 
 		if(!big.length || !small.length || boundary(small[0]))
 			return 0;
-		var l = 0, r = small.length;
+		let l = 0, r = small.length;
 
 		while(l < r){
-			var mid = (r + l + 1) >> 1;
+			const mid = (r + l + 1) >> 1;
 
 			if(big.includes(small.substring(0, mid)))
 				l = mid;
@@ -490,26 +490,26 @@ const api = new class YoutubeAPI{
 
 		if(l == small.length)
 			return l;
-		for(var i = l - 1; i > 0; i--)
+		for(let i = l - 1; i > 0; i--)
 			if(boundary(small[i]))
 				return i;
 		return 0;
 	}
 
 	track_match_score(track, result){
-		var score = 0;
+		let score = 0;
 
 		if(track.duration != -1 && result.duration != -1){
-			var diff = Math.abs(Math.round(track.duration) - Math.round(result.duration));
+			const diff = Math.abs(Math.round(track.duration) - Math.round(result.duration));
 
 			if(diff > 5)
 				return 0;
 			score += 5 - diff;
 		}
 
-		var length = Math.max(track.artists.length, result.artists ? result.artists.length : 1);
+		const length = Math.max(track.artists.length, result.artists ? result.artists.length : 1);
 
-		for(var artist of track.artists){
+		for(const artist of track.artists){
 			artist = artist.toLowerCase();
 
 			if(!result.artists){
@@ -518,7 +518,7 @@ const api = new class YoutubeAPI{
 
 					break;
 				}
-			}else for(var result_artist of result.artists){
+			}else for(const result_artist of result.artists){
 				if(result_artist.toLowerCase() == artist){
 					score += 5 / length;
 
@@ -533,7 +533,7 @@ const api = new class YoutubeAPI{
 	}
 
 	track_match_best(results, track){
-		for(var i = 0; i < results.length; i++){
+		for(let i = 0; i < results.length; i++){
 			results[i] = {
 				score: this.track_match_score(track, results[i]),
 				track: results[i]
@@ -547,7 +547,8 @@ const api = new class YoutubeAPI{
 	}
 
 	track_match_best_result(results, track){
-		var list = [], result;
+		const list = []
+		let result;
 
 		if(results.top_result)
 			list.push(results.top_result);
@@ -561,15 +562,15 @@ const api = new class YoutubeAPI{
 	}
 
 	async track_match_lookup(track){
-		var title = [...track.artists, track.title].join(' ');
-		var results = await music.search(title);
-		var expmatch = results.filter((t) => t.explicit == track.explicit);
+		const title = [...track.artists, track.title].join(' ');
+		let results = await music.search(title);
+		const expmatch = results.filter((t) => t.explicit == track.explicit);
 
 		if(results.top_result && results.top_result.explicit == track.explicit)
 			expmatch.top_result = results.top_result;
 		if(results.songs)
 			expmatch.songs = results.songs.filter((t) => t.explicit == track.explicit);
-		var match = this.track_match_best_result(expmatch, track);
+		let match = this.track_match_best_result(expmatch, track);
 
 		if(match)
 			return match;
@@ -591,10 +592,10 @@ const api = new class YoutubeAPI{
 			}
 		}
 
-		var result = await this.track_match_lookup(track);
+		let result = await this.track_match_lookup(track);
 
 		if(result){
-			var id = result.id;
+			const id = result.id;
 
 			result = await result.getStreams();
 			track.youtube_id = id;
@@ -612,11 +613,11 @@ class YoutubeMusicTrack extends YoutubeTrack{
 	}
 
 	parse_metadata(has_type, metadata){
-		var type, artists = [], duration;
-		var found = has_type ? 0 : 1;
+		const artists = []
+		let type, duration, found = has_type ? 0 : 1;
 
-		for(var i = 0; i < metadata.length; i++){
-			var text = metadata[i].text;
+		for(let i = 0; i < metadata.length; i++){
+			const text = metadata[i].text;
 
 			if(text == ' • '){
 				found++;
@@ -650,7 +651,7 @@ class YoutubeMusicTrack extends YoutubeTrack{
 	from_search(track, has_type){
 		if(!track.playlistItemData)
 			return;
-		var {type, artists, duration} = this.parse_metadata(has_type, track.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs);
+		let {type, artists, duration} = this.parse_metadata(has_type, track.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs);
 
 		if(has_type){
 			type = type.toLowerCase();
@@ -666,7 +667,7 @@ class YoutubeMusicTrack extends YoutubeTrack{
 		this.artists = artists;
 
 		if(track.badges){
-			for(var badge of track.badges){
+			for(const badge of track.badges){
 				if(badge.musicInlineBadgeRenderer?.icon?.iconType == 'MUSIC_EXPLICIT_BADGE'){
 					this.explicit = true;
 
@@ -694,7 +695,7 @@ class YoutubeMusicTrack extends YoutubeTrack{
 class YoutubeMusicResults extends TrackResults{
 	process(body){
 		if(body instanceof Array){
-			for(var section of body)
+			for(const section of body)
 				if(section.musicShelfRenderer)
 					this.process_section(section.musicShelfRenderer);
 			return;
@@ -704,7 +705,7 @@ class YoutubeMusicResults extends TrackResults{
 	}
 
 	process_section(section){
-		var section_name = text(section.title);
+		let section_name = text(section.title);
 
 		if(!section_name)
 			return;
@@ -716,7 +717,7 @@ class YoutubeMusicResults extends TrackResults{
 					this.set_browse(section.bottomEndpoint.searchEndpoint.query, section.bottomEndpoint.searchEndpoint.params);
 			case 'top result':
 			case 'videos':
-				var tracks = this.from_section(section.contents);
+				const tracks = this.from_section(section.contents);
 
 				if(section_name == 'top result' && tracks.length)
 					this.top_result = tracks[0];
@@ -729,9 +730,9 @@ class YoutubeMusicResults extends TrackResults{
 	}
 
 	from_section(list){
-		var tracks = [];
+		const tracks = [];
 
-		for(var video of list)
+		for(const video of list)
 			if(video.musicResponsiveListItemRenderer){
 				video = new YoutubeMusicTrack().from_section(video.musicResponsiveListItemRenderer);
 
@@ -749,7 +750,7 @@ class YoutubeMusicResults extends TrackResults{
 	}
 
 	extract_tracks(list){
-		for(var video of list)
+		for(const video of list)
 			if(video.musicResponsiveListItemRenderer){
 				video = new YoutubeMusicTrack().from_search(video.musicResponsiveListItemRenderer);
 
@@ -776,7 +777,7 @@ class YoutubeMusicResults extends TrackResults{
 	}
 }
 
-var music = new class YoutubeMusic{
+const music = new class YoutubeMusic{
 	constructor(){
 		this.innertube_client = {
 			clientName: 'WEB_REMIX',
@@ -801,7 +802,7 @@ var music = new class YoutubeMusic{
 	}
 
 	async search(search, continuation, params){
-		var query, body;
+		let query, body;
 
 		if(continuation)
 			query = '&continuation=' + continuation + '&type=next';
@@ -828,7 +829,7 @@ var music = new class YoutubeMusic{
 				body = get_property(body, 'musicShelfRenderer');
 		}
 
-		var results = new YoutubeMusicResults();
+		const results = new YoutubeMusicResults();
 
 		try{
 			results.process(body);

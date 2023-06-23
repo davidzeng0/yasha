@@ -98,7 +98,7 @@ const api = (new class SpotifyAPI{
 	}
 
 	async load(){
-		var {body} = await Request.getJSON('https://open.spotify.com/get_access_token?reason=transport&productType=web_player', {headers: this.account_data});
+		const {body} = await Request.getJSON('https://open.spotify.com/get_access_token?reason=transport&productType=web_player', {headers: this.account_data});
 
 		if(!body.accessToken)
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing access token'));
@@ -117,9 +117,9 @@ const api = (new class SpotifyAPI{
 			options.headers = {};
 		if(options.body)
 			options.body = JSON.stringify(options.body);
-		var res, body;
+		let res, body;
 
-		for(var tries = 0; tries < 2; tries++){
+		for(let tries = 0; tries < 2; tries++){
 			await this.prefetch();
 
 			options.headers.authorization = 'Bearer ' + this.token;
@@ -163,12 +163,12 @@ const api = (new class SpotifyAPI{
 	async get(id){
 		this.check_valid_id(id);
 
-		var track = await this.api_request('tracks/' + id);
-		var author = track.artists[track.artists.length - 1];
+		const track = await this.api_request('tracks/' + id);
+		const author = track.artists[track.artists.length - 1];
 
 		if(!author)
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing artist'));
-		var artist = await this.api_request('artists/' + author.id);
+		const artist = await this.api_request('artists/' + author.id);
 
 		try{
 			return new SpotifyTrack().from(track, artist);
@@ -182,13 +182,13 @@ const api = (new class SpotifyAPI{
 	}
 
 	async search(query, start = 0, length = 20){
-		var data = await this.api_request('search/?type=track&q=' + encodeURIComponent(query) + '&decorate_restrictions=false&include_external=audio&limit=' + length + '&offset=' + start);
-		var results = new SpotifyResults();
+		const data = await this.api_request('search/?type=track&q=' + encodeURIComponent(query) + '&decorate_restrictions=false&include_external=audio&limit=' + length + '&offset=' + start);
+		const results = new SpotifyResults();
 
 		if(data.tracks.items.length)
 			results.set_continuation(query, start + data.tracks.items.length);
 		try{
-			for(var result of data.tracks.items)
+			for(const result of data.tracks.items)
 				results.push(new SpotifyTrack().from(result));
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
@@ -200,11 +200,11 @@ const api = (new class SpotifyAPI{
 	async list_once(type, id, start = 0, length){
 		this.check_valid_id(id);
 
-		var playlist = new SpotifyPlaylist();
-		var images, tracks;
+		const playlist = new SpotifyPlaylist();
+		let images, tracks;
 
 		if(!start){
-			var list = await this.api_request(type + '/' + id);
+			const list = await this.api_request(type + '/' + id);
 
 			playlist.setMetadata(list.name, list.description);
 			images = list.images;
@@ -218,7 +218,7 @@ const api = (new class SpotifyAPI{
 		playlist.set(type, id);
 
 		try{
-			for(var item of tracks.items){
+			for(const item of tracks.items){
 				if(type == 'playlists' && item.track && !item.track.is_local)
 					playlist.push(new SpotifyTrack().from(item.track));
 				else if(type == 'albums'){
@@ -244,11 +244,11 @@ const api = (new class SpotifyAPI{
 	}
 
 	async list(type, id, limit){
-		var list = null;
-		var offset = 0;
+		let list = null;
+		let offset = 0;
 
 		do{
-			var result = await this.list_once(type, id, offset);
+			const result = await this.list_once(type, id, offset);
 
 			if(!list)
 				list = result;

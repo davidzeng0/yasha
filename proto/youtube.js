@@ -25,28 +25,28 @@ function b64url_to_binary(input){
 
 module.exports = {
 	playlist_next_offset(continuation){
-		var p = playlist.deserializeBinary(b64url_to_binary(continuation));
-		var cont = p.getContinuation();
+		const p = playlist.deserializeBinary(b64url_to_binary(continuation));
+		const cont = p.getContinuation();
 
 		if(!cont)
 			return undefined;
-		var params = cont.getParams();
+		let params = cont.getParams();
 
 		if(!params)
 			return undefined;
 		params = playlist_params.deserializeBinary(b64url_to_binary(params));
 
-		var offset = params.getOffset();
+		const offset = params.getOffset();
 
 		if(!offset)
 			return undefined;
-		var p_offset = playlist_offset.deserializeBinary(b64url_to_binary(offset.substring('PT:'.length)));
+		const p_offset = playlist_offset.deserializeBinary(b64url_to_binary(offset.substring('PT:'.length)));
 
 		return p_offset.getOffset();
 	},
 
 	gen_playlist_continuation(id, offset){
-		var p_offset = new playlist_offset(), p_params = new playlist_params(),
+		const p_offset = new playlist_offset(), p_params = new playlist_params(),
 			p_cont = new playlist.playlist_continuation(), p = new playlist();
 		p_offset.setOffset(offset);
 		p_params.setPage(Math.floor(offset / 100));
@@ -61,7 +61,7 @@ module.exports = {
 	},
 
 	gen_search_continuation(query, offset, options){
-		var s_cont = new search_continuation(),
+		const s_cont = new search_continuation(),
 			s_data = new search_continuation.search_data(),
 			s_filters = new search_filters(),
 			s_options = new search_options(),
@@ -85,7 +85,7 @@ module.exports = {
 	},
 
 	gen_search_options(opts){
-		var options = new search(),
+		const options = new search(),
 			filters = new search_filters();
 		switch(opts.sort){
 			case 'relevance':

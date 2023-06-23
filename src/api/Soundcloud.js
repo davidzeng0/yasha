@@ -12,7 +12,7 @@ class SoundcloudTrack extends Track{
 	from(track){
 		this.permalink_url = track.permalink_url;
 
-		var streams = new SoundcloudStreams().from(track);
+		const streams = new SoundcloudStreams().from(track);
 
 		if(streams.length)
 			this.setStreams(streams);
@@ -28,20 +28,20 @@ class SoundcloudTrack extends Track{
 	}
 
 	get_thumbnails(track){
-		var sizes = [20, 50, 120, 200, 500];
-		var visualSizes = [[1240, 260], [2480, 520]];
+		const sizes = [20, 50, 120, 200, 500];
+		const visualSizes = [[1240, 260], [2480, 520]];
 
-		var default_thumbnail = track.artwork_url || track.user.avatar_url;
-		var multires = /^.*\/(\w+)-([-a-zA-Z0-9]+)-([a-z0-9]+)\.(jpg|png|gif).*$/i.exec(default_thumbnail);
+		const default_thumbnail = track.artwork_url || track.user.avatar_url;
+		const multires = /^.*\/(\w+)-([-a-zA-Z0-9]+)-([a-z0-9]+)\.(jpg|png|gif).*$/i.exec(default_thumbnail);
 
-		var thumbnails = [];
+		const thumbnails = [];
 
 		if(multires){
-			var type = multires[1];
-			var size = multires[3];
+			const type = multires[1];
+			const size = multires[3];
 
 			if(type == 'visuals'){
-				for(var sz of visualSizes){
+				for(const sz of visualSizes){
 					thumbnails.push({
 						width: sz[0],
 						height: sz[1],
@@ -49,8 +49,8 @@ class SoundcloudTrack extends Track{
 					});
 				}
 			}else{
-				for(var sz of sizes){
-					var rep;
+				for(const sz of sizes){
+					let rep;
 
 					if(type == 'artworks' && sz == 20)
 						rep = 'tiny';
@@ -131,7 +131,7 @@ class SoundcloudStream extends TrackStream{
 	}
 
 	async getUrl(){
-		var body = await api.request(this.stream_url);
+		const body = await api.request(this.stream_url);
 
 		if(body && body.url)
 			return body.url;
@@ -150,8 +150,8 @@ class SoundcloudStreams extends TrackStreams{
 	}
 
 	extract_streams(streams){
-		for(var stream of streams){
-			var [match, container, codecs] = /audio\/([a-zA-Z0-9]{3,4})(?:;(?:\+| )?codecs="(.*?)")?/.exec(stream.format.mime_type);
+		for(const stream of streams){
+			let [match, container, codecs] = /audio\/([a-zA-Z0-9]{3,4})(?:;(?:\+| )?codecs="(.*?)")?/.exec(stream.format.mime_type);
 
 			if(container == 'mpeg' && !codecs)
 				codecs = 'mp3';
@@ -174,7 +174,7 @@ class SoundcloudStreams extends TrackStreams{
 	}
 }
 
-var api = new class SoundcloudAPI{
+const api = new class SoundcloudAPI{
 	constructor(){
 		this.client_id = null;
 		this.reloading = null;
@@ -202,13 +202,13 @@ var api = new class SoundcloudAPI{
 	}
 
 	async load(){
-		var {body} = await Request.get('https://soundcloud.com');
-		var regex = /<script crossorigin src="(.*?)"><\/script>/g;
-		var result;
+		const {body} = await Request.get('https://soundcloud.com');
+		const regex = /<script crossorigin src="(.*?)"><\/script>/g;
+		let result;
 
 		while(result = regex.exec(body)){
-			var script = (await Request.get(result[1])).body;
-			var id = /client_id:"([\w\d_-]+?)"/i.exec(script);
+			const script = (await Request.get(result[1])).body;
+			const id = /client_id:"([\w\d_-]+?)"/i.exec(script);
 
 			if(id && id[1]){
 				this.client_id = util.deepclone(id[1]);
@@ -221,15 +221,15 @@ var api = new class SoundcloudAPI{
 	}
 
 	async request(path, query = {}){
-		var res, body, queries = [];
+		let res, body, queries = [];
 
-		for(var tries = 0; tries < 2; tries++){
+		for(let tries = 0; tries < 2; tries++){
 			await this.prefetch();
 
 			query.client_id = this.client_id;
 			queries = [];
 
-			for(var name in query)
+			for(const name in query)
 				queries.push(name + '=' + query[name]);
 			res = (await Request.getResponse(path + '?' + queries.join('&'))).res;
 
@@ -270,8 +270,8 @@ var api = new class SoundcloudAPI{
 	}
 
 	async resolve_playlist(list, offset = 0, limit){
-		var unresolved_index = -1;
-		var tracks = new SoundcloudPlaylist();
+		let unresolved_index = -1;
+		const tracks = new SoundcloudPlaylist();
 
 		if(!list || typeof list != 'object' || !(list.tracks instanceof Array))
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Invalid list'));
@@ -280,7 +280,7 @@ var api = new class SoundcloudAPI{
 		if(offset >= list.tracks.length)
 			return null;
 		try{
-			for(var i = offset; i < list.tracks.length; i++){
+			for(let i = offset; i < list.tracks.length; i++){
 				if(list.tracks[i].streamable === undefined){
 					unresolved_index = i;
 
@@ -298,13 +298,13 @@ var api = new class SoundcloudAPI{
 		else
 			limit += offset;
 		while(unresolved_index != -1 && unresolved_index < limit){
-			var ids = list.tracks.slice(unresolved_index, unresolved_index + 50);
-			var body = await this.api_request('tracks', {ids: ids.map(track => track.id).join(',')});
+			const ids = list.tracks.slice(unresolved_index, unresolved_index + 50);
+			const body = await this.api_request('tracks', {ids: ids.map(track => track.id).join(',')});
 
 			try{
 				if(!body.length)
 					break;
-				for(var track of body)
+				for(const track of body)
 					tracks.push(new SoundcloudTrack().from(track));
 			}catch(e){
 				throw new SourceError.INTERNAL_ERROR(null, e);
@@ -319,7 +319,7 @@ var api = new class SoundcloudAPI{
 	}
 
 	async resolve(url){
-		var body = await this.api_request('resolve', {url: encodeURIComponent(url)});
+		const body = await this.api_request('resolve', {url: encodeURIComponent(url)});
 
 		if(body.kind == 'track'){
 			try{
@@ -335,11 +335,11 @@ var api = new class SoundcloudAPI{
 	}
 
 	async resolve_shortlink(id){
-		var res, body, location, url;
+		let res, body, location, url;
 
 		url = 'https://on.soundcloud.com/' + encodeURIComponent(id);
 
-		for(var redirects = 0; redirects < 5; redirects++){
+		for(const redirects = 0; redirects < 5; redirects++){
 			res = (await Request.getResponse(url, {redirect: 'manual'})).res;
 
 			try{
@@ -379,9 +379,9 @@ var api = new class SoundcloudAPI{
 	async get(id){
 		this.check_valid_id(id);
 
-		var body = await this.api_request('tracks/' + id);
+		const body = await this.api_request('tracks/' + id);
 
-		var track;
+		let track;
 
 		try{
 			track = new SoundcloudTrack().from(body);
@@ -397,9 +397,9 @@ var api = new class SoundcloudAPI{
 	async get_streams(id){
 		this.check_valid_id(id);
 
-		var body = await this.api_request('tracks/' + id);
+		const body = await this.api_request('tracks/' + id);
 
-		var streams;
+		let streams;
 
 		try{
 			streams = new SoundcloudStreams().from(body);
@@ -413,12 +413,12 @@ var api = new class SoundcloudAPI{
 	}
 
 	async search(query, offset, limit = 20){
-		var body = await this.api_request('search/tracks', {q: encodeURIComponent(query), limit, offset});
+		const body = await this.api_request('search/tracks', {q: encodeURIComponent(query), limit, offset});
 
 		try{
-			var results = new SoundcloudResults();
+			const results = new SoundcloudResults();
 
-			for(var item of body.collection)
+			for(const item of body.collection)
 				results.push(new SoundcloudTrack().from(item));
 			if(body.collection.length)
 				results.set_continuation(query, offset + limit);
@@ -431,7 +431,7 @@ var api = new class SoundcloudAPI{
 	async playlist_once(id, offset = 0, limit = 50){
 		this.check_valid_id(id);
 
-		var body = await this.api_request('playlists/' + id);
+		const body = await this.api_request('playlists/' + id);
 
 		return this.resolve_playlist(body, offset, limit);
 	}

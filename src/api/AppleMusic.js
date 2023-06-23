@@ -10,15 +10,15 @@ class AppleMusicTrack extends Track{
 	}
 
 	gen_image(url, artist){
-		var dim = artist ? 220 : 486;
+		const dim = artist ? 220 : 486;
 
 		return [new TrackImage(url.replaceAll('{w}', dim).replaceAll('{h}', dim).replaceAll('{c}', artist ? 'sr' : 'bb').replaceAll('{f}', 'webp'), dim, dim)];
 	}
 
 	from(track){
-		var icon;
+		let icon;
 
-		for(var artist of track.relationships.artists.data)
+		for(const artist of track.relationships.artists.data)
 			if(artist.attributes.artwork)
 				icon = this.gen_image(artist.attributes.artwork.url, true);
 		this.artists = track.relationships.artists.data.map(artist => artist.attributes.name);
@@ -108,8 +108,8 @@ const api = (new class AppleMusicAPI{
 	}
 
 	async load(){
-		var {body} = await Request.get('https://music.apple.com/us/browse');
-		var config = /<meta name="desktop-music-app\/config\/environment" content="(.*?)">/.exec(body);
+		const {body} = await Request.get('https://music.apple.com/us/browse');
+		let config = /<meta name="desktop-music-app\/config\/environment" content="(.*?)">/.exec(body);
 
 		if(!config)
 			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing config'));
@@ -132,9 +132,9 @@ const api = (new class AppleMusicAPI{
 	}
 
 	async api_request(path, query = {}, options = {}){
-		var res, body, queries = [];
+		let res, body, queries = [];
 
-		for(var name in query)
+		for(const name in query)
 			queries.push(encodeURIComponent(name) + '=' + encodeURIComponent(query[name]));
 		if(queries.length)
 			queries = '?' + queries.join('&');
@@ -142,7 +142,7 @@ const api = (new class AppleMusicAPI{
 			queries = '';
 		if(!options.headers)
 			options.headers = {};
-		for(var tries = 0; tries < 2; tries++){
+		for(let tries = 0; tries < 2; tries++){
 			await this.prefetch();
 
 			options.headers.authorization = `Bearer ${this.token}`;
@@ -189,7 +189,7 @@ const api = (new class AppleMusicAPI{
 	async get(id){
 		this.check_valid_id(id);
 
-		var track = await this.api_request('songs/' + id, {
+		const track = await this.api_request('songs/' + id, {
 			'fields[artists]': 'url,name,artwork,hero',
 			'include[songs]': 'artists',
 			'extend': 'artistUrl',
@@ -208,7 +208,7 @@ const api = (new class AppleMusicAPI{
 	}
 
 	get_next(url, param){
-		var num;
+		let num;
 
 		url = new URL(url, 'https://amp-api.music.apple.com');
 		num = parseInt(url.searchParams.get(param));
@@ -219,7 +219,7 @@ const api = (new class AppleMusicAPI{
 	}
 
 	async search(query, offset = 0, limit = 25){
-		var data = await this.api_request('search', {
+		const data = await this.api_request('search', {
 			groups: 'song',
 			offset,
 			limit,
@@ -239,15 +239,15 @@ const api = (new class AppleMusicAPI{
 			'omit[resource]': 'autos'
 		});
 
-		var results = new AppleMusicResults();
-		var song = data.results.song;
+		const results = new AppleMusicResults();
+		const song = data.results.song;
 
 		if(!song)
 			return results;
 		try{
 			if(song.next)
 				results.set_continuation(query, this.get_next(song.next, 'offset'));
-			for(var result of song.data)
+			for(const result of song.data)
 				results.push(new AppleMusicTrack().from(result));
 		}catch(e){
 			throw new SourceError.INTERNAL_ERROR(null, e);
@@ -259,8 +259,8 @@ const api = (new class AppleMusicAPI{
 	async list_once(type, id, offset = 0, limit = 100){
 		this.check_valid_playlist_id(id);
 
-		var result = new AppleMusicPlaylist();
-		var playlist;
+		const result = new AppleMusicPlaylist();
+		let playlist;
 
 		if(!offset){
 			playlist = await this. api_request(`${type}/${id}`, {
@@ -297,7 +297,7 @@ const api = (new class AppleMusicAPI{
 				playlist = playlist.relationships.tracks;
 			}
 
-			for(var item of playlist.data)
+			for(const item of playlist.data)
 				result.push(new AppleMusicTrack().from(item));
 			if(playlist.next)
 				result.set_continuation(this.get_next(playlist.next, 'offset'));
@@ -322,11 +322,11 @@ const api = (new class AppleMusicAPI{
 	}
 
 	async list(type, id, limit){
-		var list = null;
-		var offset = 0;
+		let list = null;
+		let offset = 0;
 
 		do{
-			var result = await this.list_once(type, id, offset);
+			const result = await this.list_once(type, id, offset);
 
 			if(!list)
 				list = result;

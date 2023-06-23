@@ -7,11 +7,11 @@ Plays a track to a voice connection
 ```js
 const {TrackPlayer, VoiceConnection, Source} = require('yasha');
 
-var player = new TrackPlayer();
-var track = await Source.resolve('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-var connection = await VoiceConnection.connect(channel);
+const player = new TrackPlayer();
+const track = await Source.resolve('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+const connection = await VoiceConnection.connect(channel);
 
-var subscription = connection.subscribe(player);
+const subscription = connection.subscribe(player);
 
 player.play(track);
 player.start();
@@ -27,7 +27,7 @@ class TrackPlayerOptions{
 	external_packet_send: boolean // Use native code to send audio packets to the voice connection. external_encrypt must be enabled
 }
 
-var player = new TrackPlayer(new TrackPlayerOptions());
+const player = new TrackPlayer(new TrackPlayerOptions());
 ```
 
 #### Events
