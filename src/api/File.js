@@ -1,5 +1,6 @@
 const {Track, TrackStream, TrackStreams} = require('../Track');
 const SourceError = require('../SourceError');
+const Source = require('../Source')
 
 class FileStream extends TrackStream{
 	constructor(url, isfile){
@@ -45,7 +46,53 @@ class FileTrack extends Track{
 	}
 }
 
+class FilePlaylist extends TrackPlaylist {
+    /**
+     *
+     * @param {string} url
+     * @param {boolean} [isfile]
+     * @returns {this}
+     */
+    from(url, isfile) {
+        this.push(new FileTrack(url, isfile))
+
+        return this
+    }
+}
+
 class File{
+	/**
+     *
+     * @param {string} url
+     * @returns {Promise<FileTrack | null>}
+     */
+    async get(url) {
+        return Source.File.resolve(url)
+    }
+
+	/**
+     *
+     * @param {string} url
+     * @returns {Promise<FileStream | null>}
+     */
+    async get_streams(url) {
+        const resolved = await Source.File.resolve(url)
+        if (resolved) return new FileStream(resolved.id, resolved.isLocalFile)
+        return null
+    }
+
+	/**
+     *
+     * @param {string} url
+     * @param {number} [length]
+     * @returns {Promise<FilePlaylist>}
+     */
+    async playlist(url, length) {
+        const track = await this.get(url)
+        if (!track) return new FilePlaylist()
+        return new FilePlaylist().setFirstTrack(track)
+    }
+
 	create(url, isfile){
 		return new FileTrack(url, isfile);
 	}
