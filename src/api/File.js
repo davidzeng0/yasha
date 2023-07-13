@@ -1,5 +1,6 @@
 const {Track, TrackStream, TrackStreams} = require('../Track');
 const SourceError = require('../SourceError');
+const Source = require('../Source')
 
 class FileStream extends TrackStream{
 	constructor(url, isfile){
@@ -46,6 +47,34 @@ class FileTrack extends Track{
 }
 
 class File{
+	/**
+     *
+     * @param {string} url
+     * @returns {Promise<never>}
+     */
+    async get(url) {
+        throw new Error('Unsupported');
+    }
+
+    /**
+     *
+     * @param {string} url
+     * @returns {Promise<never>}
+     */
+    async get_streams(url) {
+        throw new Error('Unsupported');
+    }
+
+    /**
+     * 
+     * @param {string} url
+     * @param {number} [length]
+     * @returns {Promise<never>}
+     */
+    async playlist(url, length) {
+        throw new Error('Unsupported');
+    }
+
 	create(url, isfile){
 		return new FileTrack(url, isfile);
 	}
