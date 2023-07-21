@@ -108,8 +108,8 @@ class TrackPlayer extends EventEmitter{
 	}
 
 	onpacket(packet, length, frame_size){
-		this.stop_silence_frames();
-
+		if(!this.isPaused())
+			this.stop_silence_frames();
 		packet = new Uint8Array(packet.buffer, 0, length);
 
 		if(!this.external_packet_send)
@@ -321,37 +321,42 @@ class TrackPlayer extends EventEmitter{
 			audio_buffer.writeUIntBE(connection_data.timestamp, 4, 4);
 			audio_buffer.writeUIntBE(connection_data.ssrc, 8, 4);
 
-			var len, buf;
+			var len = 12; /* header length */
 
 			switch(mode){
 				case EncryptionMode.LITE:
-					len = 16;
 					connection_data.nonce++;
 
 					if(connection_data.nonce > 4294967295)
 						connection_data.nonce = 0;
 					connection_nonce.writeUInt32BE(connection_data.nonce, 0);
-					buf = sodium.api.crypto_secretbox_easy(buffer, connection_nonce, connection_data.secretKey);
-					audio_buffer.set(connection_nonce.slice(0, 4), 12 + buf.length);
+
+					len += sodium.crypto_secretbox_easy(audio_buffer.subarray(12), buffer, connection_nonce, connection_data.secretKey);
+
+					audio_buffer.set(connection_nonce.subarray(0, 4), len);
+
+					len += 4;
 
 					break;
 				case EncryptionMode.SUFFIX:
-					len = 36;
-					sodium.api.randombytes_buf(random_bytes);
-					buf = sodium.api.crypto_secretbox_easy(buffer, random_bytes, connection_data.secretKey);
-					audio_buffer.set(random_bytes, 12 + buf.length);
+					sodium.randombytes_buf(random_bytes);
+
+					len += sodium.crypto_secretbox_easy(audio_buffer.subarray(12), buffer, random_bytes, connection_data.secretKey);
+
+					audio_buffer.set(random_bytes, len);
+
+					len += 24;
 
 					break;
 				case EncryptionMode.DEFAULT:
-					len = 12;
 					audio_buffer.copy(audio_nonce, 0, 0, 12);
-					buf = sodium.api.crypto_secretbox_easy(buffer, audio_nonce, connection_data.secretKey);
+
+					len += sodium.crypto_secretbox_easy(audio_buffer.subarray(12), buffer, audio_nonce, connection_data.secretKey);
 
 					break;
 			}
 
-			audio_buffer.set(buf, 12);
-			state.udp.send(new Uint8Array(audio_buffer.buffer, 0, len + buf.length));
+			state.udp.send(audio_buffer.subarray(0, len));
 		}
 	}
 
