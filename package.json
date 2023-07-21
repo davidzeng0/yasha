@@ -1,14 +1,15 @@
 {
 	"main": "index.js",
+	"types": "index.d.ts",
 	"name": "yasha",
-	"version": "2.1.0",
+	"version": "2.2.0",
 	"dependencies": {
 		"@discordjs/voice": "github:davidzeng0/voice#dist",
-		"discord.js": "^14.7.1",
-		"google-protobuf": "^3.19.2",
+		"discord.js": "^14.11.0",
+		"google-protobuf": "^3.21.2",
 		"node-fetch": "^2.6.6",
 		"sange": "github:davidzeng0/sange",
-		"sodium": "^3.0.2"
+		"sodium": "github:davidzeng0/sodium#dist"
 	},
 	"scripts": {
 		"proto": "mkdir -p proto/build; protoc --proto_path=proto --js_out=import_style=commonjs,binary:proto/build youtube.proto",
