@@ -72,11 +72,7 @@ player.on('finish', () => {
 Error
 ```js
 player.on('error', (error: Error) => {
-	if(error instanceof SourceError){
-		console.log(`Error playing the track: ${error.message}`);
-	}else{
-		console.log(`Error playing the track: Internal Player Error`);
-	}
+	console.log(`Error playing the track: ${error.message}`);
 
 	if(nextTrack){
 		// continue to the next track

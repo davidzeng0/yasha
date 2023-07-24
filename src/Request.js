@@ -1,4 +1,4 @@
-const SourceError = require('./SourceError');
+const {NetworkError, InternalError, ParseError} = require('js-common');
 
 const httpsAgent = new (require('https').Agent)({keepAlive: true});
 const nfetch = require('node-fetch');
@@ -16,7 +16,7 @@ module.exports = new class{
 		try{
 			res = await fetch(url, options);
 		}catch(e){
-			throw new SourceError.NETWORK_ERROR(null, e);
+			throw new NetworkError(e);
 		}
 
 		return {res};
@@ -31,12 +31,12 @@ module.exports = new class{
 			body = await res.text();
 		}catch(e){
 			if(!res.ok)
-				throw new SourceError.INTERNAL_ERROR(null, e);
-			throw new SourceError.NETWORK_ERROR(null, e);
+				throw new InternalError(e);
+			throw new NetworkError(e);
 		}
 
 		if(!res.ok)
-			throw new SourceError.INTERNAL_ERROR(null, new Error(body));
+			throw new InternalError(body);
 		return {res, body};
 	}
 
@@ -46,7 +46,7 @@ module.exports = new class{
 		try{
 			data.body = JSON.parse(data.body);
 		}catch(e){
-			throw new SourceError.INVALID_RESPONSE(null, e);
+			throw new ParseError(e);
 		}
 
 		return data;
@@ -61,12 +61,12 @@ module.exports = new class{
 			body = await res.buffer();
 		}catch(e){
 			if(!res.ok)
-				throw new SourceError.INTERNAL_ERROR(null, e);
-			throw new SourceError.NETWORK_ERROR(null, e);
+				throw new InternalError(e);
+			throw new NetworkError(e);
 		}
 
 		if(!res.ok)
-			throw new SourceError.INTERNAL_ERROR(null, new Error(body.toString('utf8')));
+			throw new InternalError(body.toString('utf8'));
 		return {res, body};
 	}
 };

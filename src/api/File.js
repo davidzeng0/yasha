@@ -1,6 +1,6 @@
 const {Track, TrackStream, TrackStreams} = require('../Track');
-const SourceError = require('../SourceError');
-const Source = require('../Source')
+const {UnplayableError} = require('../Error');
+const {InternalError} = require('js-common');
 
 class FileStream extends TrackStream{
 	constructor(url, isfile){
@@ -34,11 +34,11 @@ class FileTrack extends Track{
 	}
 
 	async getStreams(){
-		throw new SourceError.UNPLAYABLE('Stream expired or not available');
+		throw new UnplayableError('Stream expired or not available');
 	}
 
 	async fetch(){
-		throw new SourceError.INTERNAL_ERROR(null, new Error('Cannot fetch on a FileTrack'));
+		throw new InternalError('Cannot fetch on a FileTrack');
 	}
 
 	get url(){
@@ -66,7 +66,7 @@ class File{
     }
 
     /**
-     * 
+     *
      * @param {string} url
      * @param {number} [length]
      * @returns {Promise<never>}

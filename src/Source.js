@@ -1,4 +1,4 @@
-const SourceError = require('./SourceError');
+const { NotATrackError } = require('./Error');
 
 class APISource{
 	constructor(api){
@@ -164,7 +164,7 @@ const soundcloud = new class Soundcloud extends APISource{
 				return await this.api.resolve_shortlink(match.shortlink);
 			return await this.api.resolve(match.soundcloud);
 		}catch(e){
-			if(e.code == SourceError.codes.NOT_A_TRACK)
+			if(e instanceof NotATrackError)
 				return null;
 			throw e;
 		}
@@ -338,7 +338,6 @@ class Source{
 	}
 };
 
-Source.Error = SourceError;
 Source.Youtube = youtube;
 Source.Soundcloud = soundcloud;
 Source.Spotify = spotify;
