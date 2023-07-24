@@ -6,7 +6,8 @@ module.exports = {
 	},
 
 	Source: require('./src/Source'),
-	Track: require('./src/Track'),
+	...require('./src/Track'),
 	TrackPlayer: require('./src/TrackPlayer'),
 	VoiceConnection: require('./src/VoiceConnection'),
+	...require('./src/Error')
 };

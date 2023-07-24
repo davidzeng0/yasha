@@ -1,8 +1,8 @@
 const Request = require('../Request');
-const SourceError = require('../SourceError');
 const Youtube = require('./Youtube');
 
 const {Track, TrackImage, TrackResults, TrackPlaylist} = require('../Track');
+const {InternalError, ParseError, NetworkError, NotFoundError} = require('js-common');
 
 class SpotifyTrack extends Track{
 	constructor(){
@@ -101,7 +101,7 @@ const api = (new class SpotifyAPI{
 		var {body} = await Request.getJSON('https://open.spotify.com/get_access_token?reason=transport&productType=web_player', {headers: this.account_data});
 
 		if(!body.accessToken)
-			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing access token'));
+			throw new InternalError('Missing access token');
 		this.token = body.accessToken;
 	}
 
@@ -127,7 +127,7 @@ const api = (new class SpotifyAPI{
 
 			if(res.status == 401){
 				if(tries)
-					throw new SourceError.INTERNAL_ERROR(null, new Error('Unauthorized'));
+					throw new InternalError('Unauthorized');
 				this.reload();
 
 				continue;
@@ -140,16 +140,16 @@ const api = (new class SpotifyAPI{
 			body = await res.text();
 		}catch(e){
 			if(!res.ok)
-				throw new SourceError.INTERNAL_ERROR(null, e);
-			throw new SourceError.NETWORK_ERROR(null, e);
+				throw new InternalError(e);
+			throw new NetworkError(e);
 		}
 
 		if(!res.ok)
-			throw new SourceError.INTERNAL_ERROR(null, new Error(body));
+			throw new InternalError(body);
 		try{
 			body = JSON.parse(body);
 		}catch(e){
-			throw new SourceError.INVALID_RESPONSE(null, e);
+			throw new ParseError(e);
 		}
 
 		return body;
@@ -157,7 +157,7 @@ const api = (new class SpotifyAPI{
 
 	check_valid_id(id){
 		if(!/^[\w]+$/.test(id))
-			throw new SourceError.NOT_FOUND();
+			throw new NotFoundError();
 	}
 
 	async get(id){
@@ -167,13 +167,13 @@ const api = (new class SpotifyAPI{
 		var author = track.artists[track.artists.length - 1];
 
 		if(!author)
-			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing artist'));
+			throw new InternalError('Missing artist');
 		var artist = await this.api_request('artists/' + author.id);
 
 		try{
 			return new SpotifyTrack().from(track, artist);
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 	}
 
@@ -191,7 +191,7 @@ const api = (new class SpotifyAPI{
 			for(var result of data.tracks.items)
 				results.push(new SpotifyTrack().from(result));
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 
 		return results;
@@ -227,7 +227,7 @@ const api = (new class SpotifyAPI{
 				}
 			}
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 
 		if(tracks.items.length)

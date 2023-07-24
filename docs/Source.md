@@ -109,41 +109,32 @@ const {Source: {Spotify}, Track: {TrackResults}} = require('yasha');
 Spotify.search(input: string): Promise<TrackResults>
 ```
 
-#### Errors
+#### Errors (see [errors](https://github.com/davidzeng0/js-common/blob/main/src/error.ts))
 
 ```js
-class SourceError extends Error{
-	code: number;
+class GenericError extends Error{
 	message: string;
-	details: string; // more info for debugging, not shown to user
+	simpleMessage: string;
+
+	userFriendlyMessage(): string; // show this to the user
 }
 
+class NetworkError extends GenericError; // network error
+class ParseError extends GenericError; // error parsing server response
+class NotFoundError extends GenericError; // track not found
+class UnplayableError extends GenericError; // track not playable
+class NotATrackError extends GenericError; // url does not lead to a track
+
 const {Source} = require('yasha');
-
-// all API and Source functions will throw SourceError and only SourceError
-const SourceError = Source.Error;
-```
-
-```js
-// access via SourceError.codes
-
-enum SourceErrorCode{
-	NETWORK_ERROR: 1, // see errors from fetch API
-	INVALID_RESPONSE: 2, // invalid response from API (most likely replied with non-json)
-	INTERNAL_ERROR: 3, // internal error
-	NOT_FOUND: 4, // track not found
-	UNPLAYABLE: 5, // track found but not playable
-	NOT_A_TRACK: 6 // url does not lead to a track
-};
 ```
 
 ```js
 try{
 	await Source.Youtube.get('dQw4w9WgXcQ'); // get by video id
 }catch(e){
-	if(e.code == SourceError.codes.NOT_FOUND){
+	if(e instanceof NotFoundError){
 		console.log('Track not found');
-	}else if(e.code == SourceError.codes.UNPLAYABLE){
+	}else if(e instanceof UnplayableError){
 		console.log('Track not playable');
 	}else{
 		console.error(e.message);
@@ -171,7 +162,7 @@ class MyTrack{
 				return Source.Spotify.getStreams(this.id);
 			default:
 				// must not return null
-				throw new Error('Unknown platform');
+				throw new GenericError('Unknown platform');
 				// error will be emitted from TrackPlayer.on('error')
 		}
 	}
