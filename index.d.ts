@@ -1,9 +1,9 @@
 import { VoiceBasedChannel, Guild } from 'discord.js';
-import { VoiceConnectionStatus, CreateVoiceConnectionOptions } from '@discordjs/voice';
+import { VoiceConnectionStatus, JoinConfig } from '@discordjs/voice';
 import { GenericError } from 'js-common';
 import EventEmitter from 'events';
 
-declare interface VoiceConnectionOptions extends CreateVoiceConnectionOptions{
+declare interface VoiceConnectionOptions extends Partial<JoinConfig>{
 	receiveAudio?: boolean;
 }
 
@@ -11,7 +11,7 @@ declare class VoiceConnection extends EventEmitter{
 	static connect(channel: VoiceBasedChannel, options?: VoiceConnectionOptions): Promise<VoiceConnection>;
 
 	static get(guild: Guild): VoiceConnection | null | undefined;
-	static disconnect(guild: Guild, options?: CreateVoiceConnectionOptions): boolean;
+	static disconnect(guild: Guild, options?: Partial<JoinConfig>): boolean;
 
 	rejoin(channel: VoiceBasedChannel): void;
 	disconnect(): void;
