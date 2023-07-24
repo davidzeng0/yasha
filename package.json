@@ -1,30 +1,29 @@
 {
-	"main": "index.js",
-	"types": "index.d.ts",
-	"name": "yasha",
-	"version": "3.0.0",
-	"dependencies": {
-		"@discordjs/voice": "github:davidzeng0/voice#dist",
-		"discord.js": "^14.11.0",
-		"google-protobuf": "^3.21.2",
-		"js-common": "github:davidzeng0/js-common#dist",
-		"node-fetch": "^2.6.6",
-		"sange": "github:davidzeng0/sange",
-		"sodium": "github:davidzeng0/sodium#dist"
-	},
-	"scripts": {
-		"proto": "mkdir -p build; protoc --proto_path=proto --js_out=import_style=commonjs,binary:build youtube.proto",
-		"prepare": "npm run proto",
-		"build": "npm run proto",
-		"git-publish": "git-publish -b dist"
-	},
-	"devDependencies": {
-		"git-publish": "^2.0.0"
-	},
-	"files": [
-		"src",
-		"build",
-		"proto",
-		"index.d.ts"
-	]
+  "main": "index.js",
+  "types": "index.d.ts",
+  "name": "yasha",
+  "version": "3.0.0",
+  "dependencies": {
+    "@discordjs/voice": "github:davidzeng0/voice#dist",
+    "discord.js": "^14.11.0",
+    "google-protobuf": "^3.21.2",
+    "js-common": "github:davidzeng0/js-common#dist",
+    "node-fetch": "^2.6.6",
+    "sange": "github:davidzeng0/sange",
+    "sodium": "github:davidzeng0/sodium#dist"
+  },
+  "scripts": {
+    "proto": "mkdir -p build; protoc --proto_path=proto --js_out=import_style=commonjs,binary:build youtube.proto",
+    "build": "npm run proto",
+    "git-publish": "git-publish -b dist"
+  },
+  "devDependencies": {
+    "git-publish": "^2.0.0"
+  },
+  "files": [
+    "src",
+    "build",
+    "proto",
+    "index.d.ts"
+  ]
 }
