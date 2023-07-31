@@ -498,15 +498,15 @@ const api = new class YoutubeAPI{
 		return 0;
 	}
 
-	track_match_score(track, result){
+	track_match_score(track, result, rank){
 		var score = 0;
 
 		if(track.duration != -1 && result.duration != -1){
-			var diff = Math.abs(Math.round(track.duration) - Math.round(result.duration));
+			var diff = Math.abs(track.duration - result.duration);
 
-			if(diff > 5)
+			if(diff > 1.5)
 				return 0;
-			score += 5 - diff;
+			score += 40 * (1 - diff / 1.5);
 		}
 
 		var length = Math.max(track.artists.length, result.artists ? result.artists.length : 1);
@@ -516,28 +516,31 @@ const api = new class YoutubeAPI{
 
 			if(!result.artists){
 				if(this.string_word_match(result.author, artist) > 0){
-					score += 5 * (artist.length / result.author.length);
+					score += 40 * (artist.length / result.author.length);
 
 					break;
 				}
 			}else for(var result_artist of result.artists){
 				if(result_artist.toLowerCase() == artist){
-					score += 5 / length;
+					score += 40 / length;
 
 					break;
 				}
 			}
 		}
 
-		score += 5 * this.string_word_match(result.title, track.title) / result.title.length;
+		score += 10 * this.string_word_match(result.title, track.title) / result.title.length;
+		score += rank * 10;
 
-		return score / 15;
+		return score / 100;
 	}
 
 	track_match_best(results, track){
 		for(var i = 0; i < results.length; i++){
+			let rank = (results.length - i) / results.length;
+
 			results[i] = {
-				score: this.track_match_score(track, results[i]),
+				score: this.track_match_score(track, results[i], rank),
 				track: results[i]
 			};
 		}
@@ -563,7 +566,7 @@ const api = new class YoutubeAPI{
 	}
 
 	async track_match_lookup(track){
-		var title = [...track.artists, track.title].join(' ');
+		var title = `${track.artists.join(', ')} - ${track.title}`.toLowerCase();
 		var results = await music.search(title);
 		var expmatch = results.filter((t) => t.explicit == track.explicit);
 
