@@ -472,7 +472,7 @@ const api = new class YoutubeAPI{
 	}
 
 	string_word_match(big, small){
-		var boundary = (c) => /[\s\W]/g.test(c);
+		var boundary = (c) => /[^\p{L}\p{N}]/gu.test(c);
 
 		big = big.toLowerCase();
 		small = small.toLowerCase();
@@ -502,11 +502,11 @@ const api = new class YoutubeAPI{
 		var score = 0;
 
 		if(track.duration != -1 && result.duration != -1){
-			var diff = Math.abs(track.duration - result.duration);
+			var diff = Math.abs(Math.ceil(track.duration) - result.duration);
 
-			if(diff > 3)
+			if(diff > 2)
 				return 0;
-			score += 50 * (1 - diff / 3);
+			score += 40 * (1 - diff / 2);
 		}
 
 		var length = Math.max(track.artists.length, result.artists ? result.artists.length : 1);
@@ -530,7 +530,7 @@ const api = new class YoutubeAPI{
 		}
 
 		score += 10 * this.string_word_match(result.title, track.title) / result.title.length;
-		score += rank * 10;
+		score += rank * 20;
 
 		return score / 100;
 	}
@@ -637,7 +637,7 @@ class YoutubeMusicTrack extends YoutubeTrack{
 				case 1: /* artists */
 					artists.push(text);
 
-					if(metadata[i + 1].text != ' • ')
+					if(i + 1 < metadata.length && metadata[i + 1].text != ' • ')
 						i++;
 					break;
 				case 2: /* album */
