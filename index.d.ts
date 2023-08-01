@@ -1,5 +1,5 @@
 import { VoiceBasedChannel, Guild } from 'discord.js';
-import { VoiceConnectionStatus, JoinConfig } from '@discordjs/voice';
+import { VoiceConnectionStatus, JoinConfig, VoiceConnectionDisconnectedState, VoiceConnectionState, VoiceConnectionDestroyedState, VoiceConnectionReadyState, VoiceConnectionSignallingState, VoiceConnectionConnectingState } from '@discordjs/voice';
 import { GenericError } from 'js-common';
 import EventEmitter from 'events';
 
@@ -19,11 +19,11 @@ declare class VoiceConnection extends EventEmitter{
 	ready(): boolean;
 	subscribe(player: TrackPlayer): void;
 
-	on(event: VoiceConnectionStatus.Disconnected, callback: () => void): this;
-	on(event: VoiceConnectionStatus.Destroyed, callback: () => void): this;
-	on(event: VoiceConnectionStatus.Ready, callback: () => void): this;
-	on(event: VoiceConnectionStatus.Signalling, callback: () => void): this;
-	on(event: VoiceConnectionStatus.Connecting, callback: () => void): this;
+	on(event: VoiceConnectionStatus.Disconnected, callback: (oldState: VoiceConnectionState, newState: VoiceConnectionDisconnectedState) => void): this;
+	on(event: VoiceConnectionStatus.Destroyed, callback: (oldState: VoiceConnectionState, newState: VoiceConnectionDestroyedState) => void): this;
+	on(event: VoiceConnectionStatus.Ready, callback: (oldState: VoiceConnectionState, newState: VoiceConnectionReadyState) => void): this;
+	on(event: VoiceConnectionStatus.Signalling, callback: (oldState: VoiceConnectionState, newState: VoiceConnectionSignallingState) => void): this;
+	on(event: VoiceConnectionStatus.Connecting, callback: (oldState: VoiceConnectionState, newState: VoiceConnectionConnectingState) => void): this;
 	on(event: 'error', callback: (error: Error) => void): this;
 
 	static Status: typeof VoiceConnectionStatus;
@@ -106,7 +106,7 @@ declare class YoutubeSource extends APISource{
 }
 
 declare class FileSource{
-	static resolve(url: string): FileTrack | null;
+	resolve(url: string): FileTrack | null;
 }
 
 declare class Source{
