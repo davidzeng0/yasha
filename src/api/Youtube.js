@@ -189,6 +189,8 @@ class YoutubePlaylist extends TrackPlaylist{
 	}
 
 	get url(){
+		if(this.firstTrack)
+			return this.firstTrack.url + '&list=' + this.id;
 		return 'https://www.youtube.com/playlist?list=' + this.id;
 	}
 }
