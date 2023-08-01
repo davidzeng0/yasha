@@ -504,9 +504,9 @@ const api = new class YoutubeAPI{
 		if(track.duration != -1 && result.duration != -1){
 			var diff = Math.abs(track.duration - result.duration);
 
-			if(diff > 1.5)
+			if(diff > 3)
 				return 0;
-			score += 40 * (1 - diff / 1.5);
+			score += 50 * (1 - diff / 3);
 		}
 
 		var length = Math.max(track.artists.length, result.artists ? result.artists.length : 1);
@@ -516,13 +516,13 @@ const api = new class YoutubeAPI{
 
 			if(!result.artists){
 				if(this.string_word_match(result.author, artist) > 0){
-					score += 40 * (artist.length / result.author.length);
+					score += 30 * (artist.length / result.author.length);
 
 					break;
 				}
 			}else for(var result_artist of result.artists){
 				if(result_artist.toLowerCase() == artist){
-					score += 40 / length;
+					score += 30 / length;
 
 					break;
 				}
