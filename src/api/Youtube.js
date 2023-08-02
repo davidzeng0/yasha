@@ -263,7 +263,7 @@ const api = new class YoutubeAPI{
 	constructor(){
 		this.innertube_client = {
 			clientName: 'WEB',
-			clientVersion: '2.20220331.06.00',
+			clientVersion: '2.20220918',
 			gl: 'US',
 			hl: 'en'
 		};
@@ -284,6 +284,7 @@ const api = new class YoutubeAPI{
 		options.headers.origin = `https://${origin}.youtube.com`;
 
 		if(path == 'player'){
+			body.params = '2AMBCgIQBg';
 			body.contentCheckOk = true;
 			body.racyCheckOk = true;
 			body.context.client.clientName = 'ANDROID';
