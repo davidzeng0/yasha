@@ -1,8 +1,8 @@
 const Request = require('../Request');
-const SourceError = require('../SourceError');
-const util = require('./util');
 
 const {Track, TrackImage, TrackResults, TrackPlaylist, TrackStream, TrackStreams} = require('../Track');
+const {UnplayableError, NotATrackError} = require('../Error');
+const {InternalError, NetworkError, NotFoundError, ParseError} = require('js-common');
 
 class SoundcloudTrack extends Track{
 	constructor(){
@@ -135,7 +135,7 @@ class SoundcloudStream extends TrackStream{
 
 		if(body && body.url)
 			return body.url;
-		throw new SourceError.INTERNAL_ERROR(null, new Error('No stream url found'));
+		throw new UnplayableError('No stream url found');
 	}
 }
 
@@ -176,56 +176,13 @@ class SoundcloudStreams extends TrackStreams{
 
 var api = new class SoundcloudAPI{
 	constructor(){
-		this.client_id = null;
-		this.reloading = null;
-	}
-
-	async reload(){
-		if(this.reloading)
-			return;
-		this.reloading = this.load();
-
-		try{
-			await this.reloading;
-		}catch(e){
-
-		}
-
-		this.reloading = null;
-	}
-
-	async prefetch(){
-		if(!this.client_id)
-			this.reload();
-		if(this.reloading)
-			await this.reloading;
-	}
-
-	async load(){
-		var {body} = await Request.get('https://soundcloud.com');
-		var regex = /<script crossorigin src="(.*?)"><\/script>/g;
-		var result;
-
-		while(result = regex.exec(body)){
-			var script = (await Request.get(result[1])).body;
-			var id = /client_id:"([\w\d_-]+?)"/i.exec(script);
-
-			if(id && id[1]){
-				this.client_id = util.deepclone(id[1]);
-
-				return;
-			}
-		}
-
-		throw new SourceError.INTERNAL_ERROR(null, new Error('Could not find client id'));
+		this.client_id = 'dbdsA8b6V6Lw7wzu1x0T4CLxt58yd4Bf';
 	}
 
 	async request(path, query = {}){
 		var res, body, queries = [];
 
 		for(var tries = 0; tries < 2; tries++){
-			await this.prefetch();
-
 			query.client_id = this.client_id;
 			queries = [];
 
@@ -233,14 +190,8 @@ var api = new class SoundcloudAPI{
 				queries.push(name + '=' + query[name]);
 			res = (await Request.getResponse(path + '?' + queries.join('&'))).res;
 
-			if(res.status == 401){
-				if(tries)
-					throw new SourceError.INTERNAL_ERROR(null, new Error('Unauthorized'));
-				this.reload();
-
-				continue;
-			}
-
+			if(res.status == 401)
+				throw new InternalError('Unauthorized');
 			break;
 		}
 
@@ -248,18 +199,18 @@ var api = new class SoundcloudAPI{
 			body = await res.text();
 		}catch(e){
 			if(!res.ok)
-				throw new SourceError.INTERNAL_ERROR(null, e);
-			throw new SourceError.NETWORK_ERROR(null, e);
+				throw new InternalError(e);
+			throw new NetworkError(e);
 		}
 
 		if(res.status == 404)
-			throw new SourceError.NOT_FOUND('Not found');
+			throw new NotFoundError();
 		if(!res.ok)
-			throw new SourceError.INTERNAL_ERROR(null, new Error(body));
+			throw new InternalError(body);
 		try{
 			body = JSON.parse(body);
 		}catch(e){
-			throw new SourceError.INVALID_RESPONSE(null, e);
+			throw new ParseError(e);
 		}
 
 		return body;
@@ -274,7 +225,7 @@ var api = new class SoundcloudAPI{
 		var tracks = new SoundcloudPlaylist();
 
 		if(!list || typeof list != 'object' || !(list.tracks instanceof Array))
-			throw new SourceError.INTERNAL_ERROR(null, new Error('Invalid list'));
+			throw new InternalError('Invalid list');
 		if(offset == 0)
 			tracks.from(list);
 		if(offset >= list.tracks.length)
@@ -290,7 +241,7 @@ var api = new class SoundcloudAPI{
 				tracks.push(new SoundcloudTrack().from(list.tracks[i]));
 			}
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 
 		if(!limit || limit + offset > list.tracks.length)
@@ -307,7 +258,7 @@ var api = new class SoundcloudAPI{
 				for(var track of body)
 					tracks.push(new SoundcloudTrack().from(track));
 			}catch(e){
-				throw new SourceError.INTERNAL_ERROR(null, e);
+				throw new InternalError(e);
 			}
 
 			unresolved_index += body.length;
@@ -325,12 +276,12 @@ var api = new class SoundcloudAPI{
 			try{
 				return new SoundcloudTrack().from(body);
 			}catch(e){
-				throw new SourceError.INTERNAL_ERROR(null, e);
+				throw new InternalError(e);
 			}
 		}else if(body.kind == 'playlist'){
 			return this.resolve_playlist(body, 0, 50);
 		}else{
-			throw new SourceError.NOT_A_TRACK(null, new Error('Unsupported kind: ' + body.kind));
+			throw new NotATrackError('Unsupported kind: ' + body.kind);
 		}
 	}
 
@@ -346,20 +297,20 @@ var api = new class SoundcloudAPI{
 				body = await res.text();
 			}catch(e){
 				if(!res.ok)
-					throw new SourceError.INTERNAL_ERROR(null, e);
-				throw new SourceError.NETWORK_ERROR(null, e);
+					throw new InternalError(e);
+				throw new NetworkError(e);
 			}
 
 			if(res.status == 404)
-				throw new SourceError.NOT_FOUND();
+				throw new NotFoundError();
 			if(res.status != 302 || !res.headers.has('Location'))
-				throw new SourceError.INTERNAL_ERROR(null, new Error(body));
+				throw new InternalError(body);
 			location = res.headers.get('Location');
 
 			try{
 				location = new URL(location, 'https://on.soundcloud.com/');
 			}catch(e){
-				throw new SourceError.INVALID_RESPONSE('Invalid redirect URL', new Error('Response URL: ' + location));
+				throw new ParseError('Invalid redirect URL: ' + location);
 			}
 
 			url = location.href;
@@ -368,12 +319,12 @@ var api = new class SoundcloudAPI{
 				return this.resolve(url);
 		}
 
-		throw new SourceError.INVALID_RESPONSE('Too many redirects');
+		throw new ParseError('Too many redirects');
 	}
 
 	check_valid_id(id){
 		if(!/^[\d]+$/.test(id))
-			throw new SourceError.NOT_FOUND();
+			throw new NotFoundError();
 	}
 
 	async get(id){
@@ -386,11 +337,11 @@ var api = new class SoundcloudAPI{
 		try{
 			track = new SoundcloudTrack().from(body);
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 
 		if(!track.streams)
-			throw new SourceError.UNPLAYABLE('No streams found');
+			throw new UnplayableError('No streams found');
 		return track;
 	}
 
@@ -404,11 +355,11 @@ var api = new class SoundcloudAPI{
 		try{
 			streams = new SoundcloudStreams().from(body);
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 
 		if(!streams.length)
-			throw new SourceError.UNPLAYABLE('No streams found');
+			throw new UnplayableError('No streams found');
 		return streams;
 	}
 
@@ -424,7 +375,7 @@ var api = new class SoundcloudAPI{
 				results.set_continuation(query, offset + limit);
 			return results;
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 	}
 

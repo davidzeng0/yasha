@@ -1,4 +1,5 @@
 const voice = require('@discordjs/voice');
+const {GenericError} = require('js-common');
 const {VoiceConnectionStatus, VoiceConnectionDisconnectReason} = voice;
 
 class VoiceConnection extends voice.VoiceConnection{
@@ -28,9 +29,9 @@ class VoiceConnection extends voice.VoiceConnection{
 
 	rejoin(channel){
 		if(channel.guild.id != this.guild.id)
-			throw new Error('Channel is not in the same guild');
+			throw new GenericError('Channel is not in the same guild');
 		if(!channel.joinable)
-			throw new Error(channel.full ? 'Channel is full' : 'No permissions');
+			throw new GenericError(channel.full ? 'Channel is full' : 'No permissions');
 		this.rejoin_id(channel.id);
 	}
 
@@ -70,15 +71,22 @@ class VoiceConnection extends voice.VoiceConnection{
 	handle_state_change(state){
 		switch(state.status){
 			case VoiceConnectionStatus.Destroyed:
-				this.promise_reject(new Error('Connection destroyed'));
+				this.promise_reject(new GenericError('Connection destroyed'));
 
 				break;
 			case VoiceConnectionStatus.Disconnected:
-				this.promise_reject(new Error(VoiceConnection.disconnect_reason(state.reason)));
+				this.promise_reject(new GenericError(VoiceConnection.disconnect_reason(state.reason)));
 
 				break;
 			case VoiceConnectionStatus.Ready:
 				this.promise_resolve();
+
+				this.state.networking.state.ws.sendPacket({
+					op: 15, /* MEDIA_SINK_WANTS */
+					d: {
+						any: this.joinConfig.receiveAudio === false ? 0 : 100
+					}
+				});
 
 				break;
 		}
@@ -141,7 +149,7 @@ class VoiceConnection extends voice.VoiceConnection{
 
 		this.timeout = setTimeout(() => {
 			this.timeout = null;
-			this.promise_reject(new Error('Connection timed out'));
+			this.promise_reject(new GenericError('Connection timed out'));
 		}, 15000);
 
 		try{
@@ -150,7 +158,7 @@ class VoiceConnection extends voice.VoiceConnection{
 			this.connected = true;
 		}catch(e){
 			if(this.connected)
-				this.emit('error', e);
+				this.emit('error', GenericError(e));
 			this.destroy();
 		}finally{
 			clearTimeout(this.timeout);
@@ -164,7 +172,7 @@ class VoiceConnection extends voice.VoiceConnection{
 
 	static async connect(channel, options = {}){
 		if(!channel.joinable)
-			throw new Error(channel.full ? 'Channel is full' : 'No permissions');
+			throw new GenericError(channel.full ? 'Channel is full' : 'No permissions');
 		var connection = channel.guild.voice_connection;
 
 		if(!connection)
@@ -213,11 +221,11 @@ class VoiceConnection extends voice.VoiceConnection{
 		};
 
 		if(!rejoin.call(dummy))
-			throw new Error(this.disconnect_reason(VoiceConnectionDisconnectReason.AdapterUnavailable));
+			throw new GenericError(this.disconnect_reason(VoiceConnectionDisconnectReason.AdapterUnavailable));
 		dummy.state.status = VoiceConnectionStatus.Ready;
 
 		if(!disconnect.call(dummy))
-			throw new Error(this.disconnect_reason(VoiceConnectionDisconnectReason.AdapterUnavailable));
+			throw new GenericError(this.disconnect_reason(VoiceConnectionDisconnectReason.AdapterUnavailable));
 		return true;
 	}
 }

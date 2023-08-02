@@ -1,8 +1,8 @@
 const Request = require('../Request');
-const SourceError = require('../SourceError');
 const Youtube = require('./Youtube');
 
 const {Track, TrackImage, TrackResults, TrackPlaylist} = require('../Track');
+const {InternalError, NetworkError, NotFoundError, ParseError} = require('js-common');
 
 class AppleMusicTrack extends Track{
 	constructor(){
@@ -112,15 +112,15 @@ const api = (new class AppleMusicAPI{
 		var config = /<meta name="desktop-music-app\/config\/environment" content="(.*?)">/.exec(body);
 
 		if(!config)
-			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing config'));
+			throw new InternalError('Missing config');
 		try{
 			config = JSON.parse(decodeURIComponent(config[1]));
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 
 		if(!config?.MEDIA_API?.token)
-			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing token'));
+			throw new InternalError('Missing token');
 		this.token = config.MEDIA_API.token;
 	}
 
@@ -151,7 +151,7 @@ const api = (new class AppleMusicAPI{
 
 			if(res.status == 401){
 				if(tries)
-					throw new SourceError.INTERNAL_ERROR(null, new Error('Unauthorized'));
+					throw new InternalError('Unauthorized');
 				this.reload();
 
 				continue;
@@ -164,18 +164,18 @@ const api = (new class AppleMusicAPI{
 			body = await res.text();
 		}catch(e){
 			if(!res.ok)
-				throw new SourceError.INTERNAL_ERROR(null, e);
-			throw new SourceError.NETWORK_ERROR(null, e);
+				throw new InternalError(e);
+			throw new NetworkError(e);
 		}
 
 		if(res.status == 404)
-			throw new SourceError.NOT_FOUND();
+			throw new NotFoundError();
 		if(!res.ok)
-			throw new SourceError.INTERNAL_ERROR(null, new Error(body));
+			throw new InternalError(body);
 		try{
 			body = JSON.parse(body);
 		}catch(e){
-			throw new SourceError.INVALID_RESPONSE(null, e);
+			throw new ParseError(e);
 		}
 
 		return body;
@@ -183,7 +183,7 @@ const api = (new class AppleMusicAPI{
 
 	check_valid_id(id){
 		if(!/^[\d]+$/.test(id))
-			throw new SourceError.NOT_FOUND();
+			throw new NotFoundError();
 	}
 
 	async get(id){
@@ -199,7 +199,7 @@ const api = (new class AppleMusicAPI{
 		try{
 			return new AppleMusicTrack().from(track.data[0]);
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 	}
 
@@ -214,7 +214,7 @@ const api = (new class AppleMusicAPI{
 		num = parseInt(url.searchParams.get(param));
 
 		if(!Number.isFinite(num))
-			throw new Error('Invalid next');
+			throw new InternalError('Invalid next');
 		return num;
 	}
 
@@ -250,7 +250,7 @@ const api = (new class AppleMusicAPI{
 			for(var result of song.data)
 				results.push(new AppleMusicTrack().from(result));
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 
 		return results;
@@ -302,7 +302,7 @@ const api = (new class AppleMusicAPI{
 			if(playlist.next)
 				result.set_continuation(this.get_next(playlist.next, 'offset'));
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 
 		return result;
@@ -310,7 +310,7 @@ const api = (new class AppleMusicAPI{
 
 	check_valid_playlist_id(id){
 		if(!/^[\w\.-]+$/.test(id))
-			throw new SourceError.NOT_FOUND();
+			throw new NotFoundError();
 	}
 
 	async playlist_once(id, offset, length){

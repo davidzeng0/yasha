@@ -1,9 +1,11 @@
 const crypto = require('crypto');
 const Request = require('../Request');
-const SourceError = require('../SourceError');
+
+const {NetworkError, ParseError, InternalError, NotFoundError} = require('js-common');
 
 const {Track, TrackImage, TrackResults, TrackPlaylist, TrackStream, TrackStreams} = require('../Track');
 const {gen_playlist_continuation, gen_search_options, playlist_next_offset} = require('../../proto/youtube');
+const {UnplayableError} = require('../Error');
 
 function get_property(array, prop){
 	if(!(array instanceof Array))
@@ -187,6 +189,8 @@ class YoutubePlaylist extends TrackPlaylist{
 	}
 
 	get url(){
+		if(this.firstTrack)
+			return this.firstTrack.url + '&list=' + this.id;
 		return 'https://www.youtube.com/playlist?list=' + this.id;
 	}
 }
@@ -307,18 +311,18 @@ const api = new class YoutubeAPI{
 			body = await res.text();
 		}catch(e){
 			if(!res.ok)
-				throw new SourceError.INTERNAL_ERROR(null, e);
-			throw new SourceError.NETWORK_ERROR(null, e);
+				throw new InternalError(e);
+			throw new NetworkError(e);
 		}
 
 		if(res.status >= 400 && res.status < 500)
-			throw new SourceError.NOT_FOUND(null, new Error(body));
+			throw new NotFoundError(body);
 		if(!res.ok)
-			throw new SourceError.INTERNAL_ERROR(null, new Error(body));
+			throw new InternalError(body);
 		try{
 			body = JSON.parse(body);
 		}catch(e){
-			throw new SourceError.INVALID_RESPONSE(null, e);
+			throw new ParseError(e);
 		}
 
 		return body;
@@ -334,8 +338,8 @@ const api = new class YoutubeAPI{
 		try{
 			responses = await Promise.all(responses);
 		}catch(e){
-			if(e.code == SourceError.codes.NOT_FOUND)
-				e.message = 'Video not found';
+			if(e instanceof NotFoundError)
+				throw NotFoundError({simpleMessage: 'Video not found', error: e});
 			throw e;
 		}
 
@@ -344,7 +348,7 @@ const api = new class YoutubeAPI{
 		var player_response = responses[1];
 
 		if(!response || !player_response)
-			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing data'));
+			throw new InternalError('Missing data');
 		check_playable(player_response.playabilityStatus);
 
 		var video_details = player_response.videoDetails;
@@ -354,7 +358,7 @@ const api = new class YoutubeAPI{
 
 			return new YoutubeTrack().from(video_details, author, new YoutubeStreams().from(start, player_response));
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 	}
 
@@ -363,13 +367,13 @@ const api = new class YoutubeAPI{
 		var player_response = await this.api_request('player', {videoId: id});
 
 		if(!player_response)
-			throw new SourceError.INTERNAL_ERROR(null, new Error('Missing data'));
+			throw new InternalError('Missing data');
 		check_playable(player_response.playabilityStatus);
 
 		try{
 			return new YoutubeStreams().from(start, player_response);
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 	}
 
@@ -378,7 +382,7 @@ const api = new class YoutubeAPI{
 		var data = await this.api_request('browse', {continuation: gen_playlist_continuation(id, start)});
 
 		if(!data.sidebar)
-			throw new SourceError.NOT_FOUND('Playlist not found');
+			throw new NotFoundError(null, 'Playlist not found');
 		if(!data.onResponseReceivedActions)
 			return results;
 		try{
@@ -387,7 +391,7 @@ const api = new class YoutubeAPI{
 			results.setMetadata(text(details.title), text(details.description));
 			results.process(id, data.onResponseReceivedActions[0].appendContinuationItemsAction.continuationItems, start);
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 
 		return results;
@@ -415,17 +419,17 @@ const api = new class YoutubeAPI{
 
 		if(continuation){
 			if(!body.onResponseReceivedCommands)
-				throw new SourceError.NOT_FOUND('Search continuation token not found');
+				throw new NotFoundError('Search continuation token not found');
 			try{
 				body = body.onResponseReceivedCommands[0].appendContinuationItemsAction.continuationItems;
 			}catch(e){
-				throw new SourceError.INTERNAL_ERROR(null, e);
+				throw new InternalError(e);
 			}
 		}else{
 			try{
 				body = body.contents.twoColumnSearchResultsRenderer.primaryContents.sectionListRenderer.contents;
 			}catch(e){
-				throw new SourceError.INTERNAL_ERROR(null, e);
+				throw new InternalError(e);
 			}
 		}
 
@@ -434,7 +438,7 @@ const api = new class YoutubeAPI{
 		try{
 			results.process(body);
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 
 		return results;
@@ -464,13 +468,13 @@ const api = new class YoutubeAPI{
 		}
 
 		if(!sapisid)
-			throw new SourceError.INTERNAL_ERROR(null, new Error('Invalid Cookie'));
+			throw new InternalError('Invalid Cookie');
 		this.sapisid = sapisid;
 		this.cookie = cookiestr;
 	}
 
 	string_word_match(big, small){
-		var boundary = (c) => /[\s\W]/g.test(c);
+		var boundary = (c) => /[^\p{L}\p{N}]/gu.test(c);
 
 		big = big.toLowerCase();
 		small = small.toLowerCase();
@@ -496,15 +500,15 @@ const api = new class YoutubeAPI{
 		return 0;
 	}
 
-	track_match_score(track, result){
+	track_match_score(track, result, rank){
 		var score = 0;
 
 		if(track.duration != -1 && result.duration != -1){
-			var diff = Math.abs(Math.round(track.duration) - Math.round(result.duration));
+			var diff = Math.abs(Math.ceil(track.duration) - result.duration);
 
-			if(diff > 5)
+			if(diff > 2)
 				return 0;
-			score += 5 - diff;
+			score += 40 * (1 - diff / 2);
 		}
 
 		var length = Math.max(track.artists.length, result.artists ? result.artists.length : 1);
@@ -514,28 +518,31 @@ const api = new class YoutubeAPI{
 
 			if(!result.artists){
 				if(this.string_word_match(result.author, artist) > 0){
-					score += 5 * (artist.length / result.author.length);
+					score += 30 * (artist.length / result.author.length);
 
 					break;
 				}
 			}else for(var result_artist of result.artists){
 				if(result_artist.toLowerCase() == artist){
-					score += 5 / length;
+					score += 30 / length;
 
 					break;
 				}
 			}
 		}
 
-		score += 5 * this.string_word_match(result.title, track.title) / result.title.length;
+		score += 10 * this.string_word_match(result.title, track.title) / result.title.length;
+		score += rank * 20;
 
-		return score / 15;
+		return score / 100;
 	}
 
 	track_match_best(results, track){
 		for(var i = 0; i < results.length; i++){
+			let rank = (results.length - i) / results.length;
+
 			results[i] = {
-				score: this.track_match_score(track, results[i]),
+				score: this.track_match_score(track, results[i], rank),
 				track: results[i]
 			};
 		}
@@ -561,7 +568,7 @@ const api = new class YoutubeAPI{
 	}
 
 	async track_match_lookup(track){
-		var title = [...track.artists, track.title].join(' ');
+		var title = `${track.artists.join(', ')} - ${track.title}`.toLowerCase();
 		var results = await music.search(title);
 		var expmatch = results.filter((t) => t.explicit == track.explicit);
 
@@ -602,7 +609,7 @@ const api = new class YoutubeAPI{
 			return result;
 		}
 
-		throw new SourceError.UNPLAYABLE('Could not find streams for this track');
+		throw new UnplayableError('Could not find streams for this track');
 	}
 }
 
@@ -632,7 +639,7 @@ class YoutubeMusicTrack extends YoutubeTrack{
 				case 1: /* artists */
 					artists.push(text);
 
-					if(metadata[i + 1].text != ' • ')
+					if(i + 1 < metadata.length && metadata[i + 1].text != ' • ')
 						i++;
 					break;
 				case 2: /* album */
@@ -811,17 +818,17 @@ var music = new class YoutubeMusic{
 
 		if(continuation){
 			if(!body.continuationContents)
-				throw new SourceError.NOT_FOUND('Search continuation token not found');
+				throw new NotFoundError('Search continuation token not found');
 			try{
 				body = body.continuationContents.musicShelfContinuation;
 			}catch(e){
-				throw new SourceError.INTERNAL_ERROR(null, e);
+				throw new InternalError(e);
 			}
 		}else{
 			try{
 				body = body.contents.tabbedSearchResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents;
 			}catch(e){
-				throw new SourceError.INTERNAL_ERROR(null, e);
+				throw new InternalError(e);
 			}
 
 			if(params)
@@ -833,7 +840,7 @@ var music = new class YoutubeMusic{
 		try{
 			results.process(body);
 		}catch(e){
-			throw new SourceError.INTERNAL_ERROR(null, e);
+			throw new InternalError(e);
 		}
 
 		return results;

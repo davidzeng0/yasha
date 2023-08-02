@@ -4,6 +4,8 @@ const VoiceConnection = require('./VoiceConnection');
 const AudioPlayer = require('sange');
 
 const sodium = require('sodium');
+const {UnsupportedError, GenericError, InternalError} = require('js-common');
+const {UnplayableError} = require('./Error');
 
 const random_bytes = Buffer.alloc(24);
 const connection_nonce = Buffer.alloc(24);
@@ -76,7 +78,7 @@ class TrackPlayer extends EventEmitter{
 	subscribe(connection){
 		if(this.external_encrypt){
 			if(this.subscriptions.length)
-				throw new Error('Cannot subscribe to multiple connections when external encryption is enabled');
+				throw new UnsupportedError('Cannot subscribe to multiple connections when external encryption is enabled');
 			connection.on('stateChange', this.onstatechange);
 		}
 
@@ -179,7 +181,7 @@ class TrackPlayer extends EventEmitter{
 					this.player.ffplayer.pipe(udp.remote.ip, udp.remote.port);
 			}catch(e){
 				this.cleanup();
-				this.emit('error', e);
+				this.emit('error', new GenericError(e));
 
 				return;
 			}
@@ -193,7 +195,7 @@ class TrackPlayer extends EventEmitter{
 			this.player.ffplayer.setSecretBox(new Uint8Array(32), 0, 0);
 		}catch(e){
 			this.cleanup();
-			this.emit('error', e);
+			this.emit('error', new GenericError(e));
 		}
 
 		if(this.external_packet_send)
@@ -210,7 +212,7 @@ class TrackPlayer extends EventEmitter{
 			try{
 				this.player = new AudioPlayer(this.external_encrypt ? new Uint8Array(4096) : audio_output, false);
 			}catch(e){
-				this.emit('error', e);
+				this.emit('error', new GenericError(e));
 
 				return;
 			}
@@ -251,7 +253,7 @@ class TrackPlayer extends EventEmitter{
 		this.stream = this.get_best_stream(streams);
 
 		if(!this.stream){
-			this.emit('error', new Error('No streams found'));
+			this.emit('error', new UnplayableError('No streams found'));
 
 			return false;
 		}
@@ -410,7 +412,7 @@ class TrackPlayer extends EventEmitter{
 	error(error, retryable){
 		if(!retryable || Date.now() - this.last_error < ERROR_INTERVAL){
 			this.destroy_player();
-			this.emit('error', error);
+			this.emit('error', new InternalError(error));
 
 			return true;
 		}
@@ -481,15 +483,16 @@ class TrackPlayer extends EventEmitter{
 			this.player.setVolume(this.stream.volume);
 		try{
 			this.player.setURL(this.stream.url, this.stream.is_file);
-			this.player.start();
+
+			await this.player.start();
 		}catch(e){
-			this.emit('error', e);
+			this.emit('error', GenericError(e));
 		}
 	}
 
 	check_destroyed(){
 		if(!this.player)
-			throw new Error('Player was destroyed or nothing was playing');
+			throw new GenericError('Player was destroyed or nothing was playing');
 	}
 
 	hasPlayer(){

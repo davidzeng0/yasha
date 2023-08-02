@@ -1,7 +1,7 @@
 const {
 	playlist, playlist_params, playlist_offset,
 	search_sort, search_filters, search, search_continuation, search_options
-} = require('./build/youtube_pb');
+} = require('../build/youtube_pb');
 
 function binary_to_b64_no_pad(binary){
 	return Buffer.from(binary).toString('base64url');
