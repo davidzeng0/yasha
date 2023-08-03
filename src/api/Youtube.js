@@ -38,17 +38,17 @@ function check_playable(st){
 			return;
 		case 'error':
 			if(reason == 'Video unavailable')
-				throw new SourceError.NOT_FOUND('Video not found');
+				throw new NotFoundError('Video not found');
 		case 'unplayable':
-			throw new SourceError.UNPLAYABLE(reason || status);
+			throw new UnplayableError(reason || status);
 		case 'login_required':
-			throw new SourceError.UNPLAYABLE('Video is age restricted');
+			throw new UnplayableError('Video is age restricted');
 		case 'content_check_required':
-			throw new SourceError.UNPLAYABLE('Content check required');
+			throw new UnplayableError('Content check required');
 		case 'age_check_required':
-			throw new SourceError.UNPLAYABLE('Age check required');
+			throw new UnplayableError('Age check required');
 		default:
-			throw new SourceError.UNPLAYABLE(reason || status);
+			throw new UnplayableError(reason || status);
 	}
 }
 
@@ -382,7 +382,7 @@ const api = new class YoutubeAPI{
 		var data = await this.api_request('browse', {continuation: gen_playlist_continuation(id, start)});
 
 		if(!data.sidebar)
-			throw new NotFoundError(null, 'Playlist not found');
+			throw new NotFoundError('Playlist not found');
 		if(!data.onResponseReceivedActions)
 			return results;
 		try{
