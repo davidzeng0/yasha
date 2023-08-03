@@ -103,6 +103,7 @@ declare class APISource{
 
 declare class YoutubeSource extends APISource{
 	setCookie(cookie: string): void;
+	Music: any;
 }
 
 declare class FileSource{
