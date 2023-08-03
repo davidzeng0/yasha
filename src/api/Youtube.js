@@ -537,7 +537,7 @@ const api = new class YoutubeAPI{
 		return score / 100;
 	}
 
-	track_match_best(results, track){
+	track_match_best(results, track, isYoutube){
 		for(var i = 0; i < results.length; i++){
 			let rank = (results.length - i) / results.length;
 
@@ -547,29 +547,29 @@ const api = new class YoutubeAPI{
 			};
 		}
 
-		results = results.filter(match => match.score >= 0.5);
+		results = results.filter(match => match.score >= (isYoutube ? 1 / 3 : 1 / 2));
 		results.sort((a, b) => b.score - a.score);
 
 		return results.length ? results[0].track : null;
 	}
 
-	track_match_best_result(results, track){
+	track_match_best_result(results, track, isYoutube){
 		var list = [], result;
 
 		if(results.top_result)
 			list.push(results.top_result);
 		if(results.songs)
 			list.push(...results.songs);
-		result = this.track_match_best(list, track);
+		result = this.track_match_best(list, track, isYoutube);
 
 		if(result)
 			return result;
-		return this.track_match_best(results, track);
+		return this.track_match_best(results, track, isYoutube);
 	}
 
 	async track_match_lookup(track){
 		var title = `${track.artists.join(', ')} - ${track.title}`.toLowerCase();
-		var results = await music.search(title);
+		var results = await music.search(title, null, 'EgWKAQIIAWoQEAMQBBAJEAoQBRAREBAQFQ%3D%3D');
 		var expmatch = results.filter((t) => t.explicit == track.explicit);
 
 		if(results.top_result && results.top_result.explicit == track.explicit)
@@ -586,7 +586,7 @@ const api = new class YoutubeAPI{
 			return match;
 		results = await this.search(title);
 
-		return this.track_match_best_result(results, track);
+		return this.track_match_best_result(results, track, true);
 	}
 
 	async track_match(track){
@@ -704,10 +704,23 @@ class YoutubeMusicResults extends TrackResults{
 			for(var section of body)
 				if(section.musicShelfRenderer)
 					this.process_section(section.musicShelfRenderer);
+				else if(section.musicCardShelfRenderer)
+					this.process_card(section.musicCardShelfRenderer);
 			return;
 		}
 
 		this.process_once(body);
+	}
+
+	process_card(card){
+		if(!card.contents)
+			return;
+		var tracks = this.from_section(card.contents);
+
+		if(!tracks.length)
+			return;
+		this.top_result = tracks[0];
+		this.push(...tracks);
 	}
 
 	process_section(section){
