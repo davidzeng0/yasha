@@ -547,7 +547,7 @@ const api = new class YoutubeAPI{
 			};
 		}
 
-		results = results.filter(match => match.score >= isYoutube ? 1 / 3 : 1 / 2);
+		results = results.filter(match => match.score >= (isYoutube ? 1 / 3 : 1 / 2));
 		results.sort((a, b) => b.score - a.score);
 
 		return results.length ? results[0].track : null;
@@ -569,7 +569,7 @@ const api = new class YoutubeAPI{
 
 	async track_match_lookup(track){
 		var title = `${track.artists.join(', ')} - ${track.title}`.toLowerCase();
-		var results = await music.search(title);
+		var results = await music.search(title, null, 'EgWKAQIIAWoQEAMQBBAJEAoQBRAREBAQFQ%3D%3D');
 		var expmatch = results.filter((t) => t.explicit == track.explicit);
 
 		if(results.top_result && results.top_result.explicit == track.explicit)
@@ -713,14 +713,12 @@ class YoutubeMusicResults extends TrackResults{
 	}
 
 	process_card(card){
+		if(!card.contents)
+			return;
 		var tracks = this.from_section(card.contents);
 
 		if(!tracks.length)
 			return;
-		if(this.songs)
-			this.songs.push(...tracks);
-		else
-			this.songs = tracks;
 		this.top_result = tracks[0];
 		this.push(...tracks);
 	}
