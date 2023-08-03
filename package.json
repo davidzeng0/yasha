@@ -2,7 +2,7 @@
 	"main": "index.js",
 	"types": "index.d.ts",
 	"name": "yasha",
-	"version": "3.0.0",
+	"version": "3.0.1",
 	"dependencies": {
 		"@discordjs/voice": "github:davidzeng0/voice#dist",
 		"discord.js": "^14.11.0",
