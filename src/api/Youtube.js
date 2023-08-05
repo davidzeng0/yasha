@@ -38,7 +38,7 @@ function check_playable(st){
 			return;
 		case 'error':
 			if(reason == 'Video unavailable')
-				throw new NotFoundError('Video not found');
+				throw new NotFoundError({simpleMessage: 'Video not found'});
 		case 'unplayable':
 			throw new UnplayableError(reason || status);
 		case 'login_required':
@@ -383,7 +383,7 @@ const api = new class YoutubeAPI{
 		var data = await this.api_request('browse', {continuation: gen_playlist_continuation(id, start)});
 
 		if(!data.sidebar)
-			throw new NotFoundError('Playlist not found');
+			throw new NotFoundError({simpleMessage: 'Playlist not found'});
 		if(!data.onResponseReceivedActions)
 			return results;
 		try{
@@ -610,7 +610,7 @@ const api = new class YoutubeAPI{
 			return result;
 		}
 
-		throw new UnplayableError('Could not find streams for this track');
+		throw new UnplayableError({simpleMessage: 'Could not fetch streams for this track'});
 	}
 }
 
