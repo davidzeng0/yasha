@@ -17,16 +17,20 @@ const {
 	},
 
 	Source, // src/Source
-	Track: {  // src/Track
-		Track,
-		TrackResults,
-		TrackPlaylist,
-		TrackImage,
-		TrackStream,
-		TrackStreams
-	},
+
+	// src/Track
+	Track,
+	TrackResults,
+	TrackPlaylist,
+	TrackImage,
+	TrackStream,
+	TrackStreams,
 
 	TrackPlayer, // src/TrackPlayer
 	VoiceConnection, // src/VoiceConnection
+
+	// src/Error
+	UnplayableError,
+	NotATrackError
 } = lib;
 ```

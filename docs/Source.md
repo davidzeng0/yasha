@@ -11,7 +11,7 @@ var track = await Source.resolve('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 ```
 
 ```js
-const {Source, Track: {TrackPlaylist}} = require('yasha');
+const {Source, TrackPlaylist} = require('yasha');
 
 var playlist = await Source.resolve('https://www.youtube.com/playlist?list=yourPLAYLISTidHERE');
 
@@ -70,7 +70,7 @@ if(result instanceof TrackPlaylist){
 
 Resolve (static)
 ```js
-const {Track: {Track, TrackPlaylist}} = require('yasha');
+const {Track, TrackPlaylist} = require('yasha');
 
 // attempts to resolve a url to a track or playlist
 // returns null if given text does not match any urls
@@ -82,7 +82,7 @@ Sources
 
 Youtube
 ```js
-const {Source: {Youtube}, Track: {TrackResults}} = require('yasha');
+const {Source: {Youtube}, TrackResults} = require('yasha');
 
 Youtube.search(input: string): Promise<TrackResults>
 
@@ -97,14 +97,14 @@ Youtube.setCookie(cookie: string): void
 
 Soundcloud
 ```js
-const {Source: {Soundcloud}, Track: {TrackResults}} = require('yasha');
+const {Source: {Soundcloud}, TrackResults} = require('yasha');
 
 Soundcloud.search(input: string): Promise<TrackResults>
 ```
 
 Spotify
 ```js
-const {Source: {Spotify}, Track: {TrackResults}} = require('yasha');
+const {Source: {Spotify}, TrackResults} = require('yasha');
 
 Spotify.search(input: string): Promise<TrackResults>
 ```

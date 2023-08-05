@@ -5,7 +5,7 @@ Represents a track or a list of tracks
 ### Track.js
 
 ```js
-const {Track: {Track, TrackPlaylist, TrackResults, TrackImage}} = require('yasha');
+const {Track, TrackPlaylist, TrackResults, TrackImage} = require('yasha');
 ```
 
 ```js
