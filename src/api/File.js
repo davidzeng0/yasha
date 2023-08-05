@@ -1,6 +1,6 @@
 const {Track, TrackStream, TrackStreams} = require('../Track');
 const {UnplayableError} = require('../Error');
-const {InternalError} = require('js-common');
+const {UnsupportedError} = require('js-common');
 
 class FileStream extends TrackStream{
 	constructor(url, isfile){
@@ -34,11 +34,11 @@ class FileTrack extends Track{
 	}
 
 	async getStreams(){
-		throw new UnplayableError('Stream expired or not available');
+		throw new UnplayableError({simpleMessage: 'Stream expired or not available'});
 	}
 
 	async fetch(){
-		throw new InternalError('Cannot fetch on a FileTrack');
+		throw new UnsupportedError('Cannot fetch on a FileTrack');
 	}
 
 	get url(){
@@ -53,7 +53,7 @@ class File{
      * @returns {Promise<never>}
      */
     async get(url) {
-        throw new Error('Unsupported');
+        throw new UnsupportedError();
     }
 
     /**
@@ -62,7 +62,7 @@ class File{
      * @returns {Promise<never>}
      */
     async get_streams(url) {
-        throw new Error('Unsupported');
+        throw new UnsupportedError();
     }
 
     /**
@@ -72,7 +72,7 @@ class File{
      * @returns {Promise<never>}
      */
     async playlist(url, length) {
-        throw new Error('Unsupported');
+        throw new UnsupportedError();
     }
 
 	create(url, isfile){
