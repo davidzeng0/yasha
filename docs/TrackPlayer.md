@@ -88,7 +88,7 @@ player.on('error', (error: Error) => {
 
 Play a track
 ```js
-const {Track: {Track}} = require('yasha');
+const {Track} = require('yasha');
 
 player.play(track: Track): void;
 ```
