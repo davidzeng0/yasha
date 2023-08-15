@@ -70,7 +70,6 @@ declare class TrackPlaylist extends TrackResults{
 }
 
 declare class Track{
-	platform: string;
 	playable: boolean;
 
 	author: string | null;
@@ -92,6 +91,7 @@ declare class Track{
 }
 
 declare class FileTrack extends Track{
+	platform: 'File';
 	isLocalFile: boolean;
 }
 
@@ -110,9 +110,41 @@ declare class FileSource{
 	resolve(url: string): FileTrack | null;
 }
 
+declare class YoutubeTrack extends Track {
+	platform: 'Youtube';
+}
+
+declare class YoutubePlaylist extends TrackPlaylist {
+	platform: 'Youtube';
+}
+
+declare class SoundcloudTrack extends Track{
+	platform: 'Soundcloud';
+}
+
+declare class SoundcloudPlaylist extends TrackPlaylist{
+	platform: 'Soundcloud';
+}
+
+declare class SpotifyTrack extends Track{
+	platform: 'Spotify';
+}
+
+declare class SpotifyPlaylist extends TrackPlaylist{
+	platform: 'Spotify';
+}
+
+declare class AppleMusicTrack extends Track{
+	platform: 'AppleMusic';
+}
+
+declare class AppleMusicPlaylist extends TrackPlaylist{
+	platform: 'AppleMusic';
+}
+
 declare class Source{
-	static resolve(input: string): Promise<Track | TrackPlaylist> | null;
-	static resolve(input: string, weak: boolean): Promise<Track | TrackPlaylist> | null;
+	static resolve(input: string): Promise<YoutubeTrack | YoutubePlaylist | SoundcloudTrack | SoundcloudPlaylist | SpotifyTrack | SpotifyPlaylist | AppleMusicTrack | AppleMusicPlaylist | null>;
+	static resolve(input: string, weak: boolean): Promise<YoutubeTrack | YoutubePlaylist | SoundcloudTrack | SoundcloudPlaylist | SpotifyTrack | SpotifyPlaylist | AppleMusicTrack | AppleMusicPlaylist | null>;
 	static Youtube: YoutubeSource;
 	static Soundcloud: APISource;
 	static Spotify: APISource;
