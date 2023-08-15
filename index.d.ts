@@ -70,6 +70,7 @@ declare class TrackPlaylist extends TrackResults{
 }
 
 declare class Track{
+	platform: string;
 	playable: boolean;
 
 	author: string | null;
