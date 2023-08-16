@@ -57,6 +57,7 @@ class AppleMusicResults extends TrackResults{
 }
 
 class AppleMusicPlaylist extends TrackPlaylist{
+	platform = 'AppleMusic';
 	set(type, id){
 		this.type = type;
 		this.id = id;
