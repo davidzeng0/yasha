@@ -322,7 +322,7 @@ const file = new class File extends APISource{
 }
 
 class Source{
-	static resolve(input, weak = true){
+	static async resolve(input, weak = true){
 		var sources = [youtube, soundcloud, spotify, apple];
 		var match = null;
 

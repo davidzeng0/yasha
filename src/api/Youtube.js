@@ -171,6 +171,7 @@ class YoutubeResults extends TrackResults{
 }
 
 class YoutubePlaylist extends TrackPlaylist{
+	platform = 'Youtube';
 	process(id, data, offset){
 		this.id = id;
 
