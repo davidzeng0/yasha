@@ -100,6 +100,7 @@ class SoundcloudResults extends TrackResults{
 }
 
 class SoundcloudPlaylist extends TrackPlaylist{
+	platform = 'Soundcloud';
 	from(list){
 		this.permalink_url = list.permalink_url;
 		this.setMetadata(list.title, list.description);

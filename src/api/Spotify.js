@@ -45,6 +45,7 @@ class SpotifyResults extends TrackResults{
 }
 
 class SpotifyPlaylist extends TrackPlaylist{
+	platform = 'Spotify';
 	set(type, id){
 		this.type = type;
 		this.id = id;
