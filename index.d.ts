@@ -47,14 +47,14 @@ declare class TrackStream{
 	getUrl?: () => Promise<string>;
 }
 
-declare class TrackStreams extends Array{
+declare class TrackStreams extends Array<TrackStream>{
 	volume: number;
 	live: boolean;
 
 	expired(): boolean;
 }
 
-declare class TrackResults extends Array{
+declare class TrackResults extends Array<Track>{
 	next(): Promise<TrackResults | null>;
 }
 
@@ -143,9 +143,12 @@ declare class AppleMusicPlaylist extends TrackPlaylist{
 	platform: 'AppleMusic';
 }
 
+declare type TrackTypes = YoutubeTrack | SoundcloudTrack | SpotifyTrack | AppleMusicTrack;
+declare type PlaylistTypes = YoutubePlaylist | SoundcloudPlaylist | SpotifyPlaylist | AppleMusicPlaylist;
+
 declare class Source{
-	static resolve(input: string): Promise<YoutubeTrack | YoutubePlaylist | SoundcloudTrack | SoundcloudPlaylist | SpotifyTrack | SpotifyPlaylist | AppleMusicTrack | AppleMusicPlaylist | null>;
-	static resolve(input: string, weak: boolean): Promise<YoutubeTrack | YoutubePlaylist | SoundcloudTrack | SoundcloudPlaylist | SpotifyTrack | SpotifyPlaylist | AppleMusicTrack | AppleMusicPlaylist | null>;
+	static resolve(input: string): Promise<Track | TrackPlaylist> | null;
+	static resolve(input: string, weak: boolean): Promise<Track | TrackPlaylist> | null;
 	static Youtube: YoutubeSource;
 	static Soundcloud: APISource;
 	static Spotify: APISource;
@@ -209,4 +212,4 @@ declare class UnplayableError extends GenericError{}
 
 declare class NotATrackError extends GenericError{}
 
-export { api, Source, TrackPlayer, VoiceConnection, Track, TrackImage, TrackStream, TrackStreams, TrackResults, TrackPlaylist, UnplayableError, NotATrackError };
+export { api, Source, TrackPlayer, VoiceConnection, Track, TrackImage, TrackStream, TrackStreams, TrackResults, TrackPlaylist, UnplayableError, NotATrackError, TrackTypes, PlaylistTypes };
