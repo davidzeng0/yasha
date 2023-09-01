@@ -1,4 +1,5 @@
 const Request = require('../Request');
+const util = require('./util');
 
 const {Track, TrackImage, TrackResults, TrackPlaylist, TrackStream, TrackStreams} = require('../Track');
 const {UnplayableError, NotATrackError} = require('../Error');
@@ -177,13 +178,56 @@ class SoundcloudStreams extends TrackStreams{
 
 var api = new class SoundcloudAPI{
 	constructor(){
-		this.client_id = 'dbdsA8b6V6Lw7wzu1x0T4CLxt58yd4Bf';
+		this.client_id = null;
+		this.reloading = null;
+	}
+
+	async reload(){
+		if(this.reloading)
+			return;
+		this.reloading = this.load();
+
+		try{
+			await this.reloading;
+		}catch(e){
+
+		}
+
+		this.reloading = null;
+	}
+
+	async prefetch(){
+		if(!this.client_id)
+			this.reload();
+		if(this.reloading)
+			await this.reloading;
+	}
+
+	async load(){
+		var {body} = await Request.get('https://soundcloud.com');
+		var regex = /<script crossorigin src="(.*?)"><\/script>/g;
+		var result;
+
+		while(result = regex.exec(body)){
+			var script = (await Request.get(result[1])).body;
+			var id = /client_id:"([\w\d_-]+?)"/i.exec(script);
+
+			if(id && id[1]){
+				this.client_id = util.deepclone(id[1]);
+
+				return;
+			}
+		}
+
+		throw new SourceError.INTERNAL_ERROR(null, new Error('Could not find client id'));
 	}
 
 	async request(path, query = {}){
 		var res, body, queries = [];
 
 		for(var tries = 0; tries < 2; tries++){
+			await this.prefetch();
+
 			query.client_id = this.client_id;
 			queries = [];
 
@@ -191,8 +235,14 @@ var api = new class SoundcloudAPI{
 				queries.push(name + '=' + query[name]);
 			res = (await Request.getResponse(path + '?' + queries.join('&'))).res;
 
-			if(res.status == 401)
-				throw new InternalError('Unauthorized');
+			if(res.status == 401){
+				if(tries)
+					throw new SourceError.INTERNAL_ERROR(null, new Error('Unauthorized'));
+				this.reload();
+
+				continue;
+			}
+
 			break;
 		}
 
