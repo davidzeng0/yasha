@@ -260,17 +260,19 @@ const apple = new class AppleMusic extends APISource{
 				path.shift();
 			if(path.length < 2)
 				return null;
+			let data = path[2] ?? path[1];
+
 			switch(path[0]){
 				case 'song':
-					return {track: path[1]};
+					return {track: data};
 				case 'playlist':
-					return {playlist: path[2] ?? path[1]};
+					return {playlist: data};
 				case 'album':
 					var track = url.searchParams.get('i');
 
 					if(track)
 						return {track};
-					return {album: path[2] ?? path[1]};
+					return {album: data};
 			}
 		}
 
@@ -322,7 +324,7 @@ const file = new class File extends APISource{
 }
 
 class Source{
-	static async resolve(input, weak = true){
+	static resolve(input, weak = true){
 		var sources = [youtube, soundcloud, spotify, apple];
 		var match = null;
 
