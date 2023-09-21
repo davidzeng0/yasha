@@ -1,5 +1,6 @@
 const Request = require('../Request');
 const Youtube = require('./Youtube');
+const util = require('./util');
 
 const {Track, TrackImage, TrackResults, TrackPlaylist} = require('../Track');
 const {InternalError, NetworkError, NotFoundError, ParseError} = require('js-common');
@@ -109,20 +110,24 @@ const api = (new class AppleMusicAPI{
 	}
 
 	async load(){
-		var {body} = await Request.get('https://music.apple.com/us/browse');
-		var config = /<meta name="desktop-music-app\/config\/environment" content="(.*?)">/.exec(body);
+		var base = 'https://music.apple.com/us/browse';
+		var {body} = await Request.get(base);
 
-		if(!config)
-			throw new InternalError('Missing config');
-		try{
-			config = JSON.parse(decodeURIComponent(config[1]));
-		}catch(e){
-			throw new InternalError(e);
+		var regex = /<script.*?src="(.*?)"><\/script>/g;
+		var result;
+
+		while(result = regex.exec(body)){
+			var script = (await Request.get(new URL(result[1], base).href)).body;
+			var token = /const [a-zA-Z]*?="(ey[\w\d._-]+?)"/i.exec(script);
+
+			if(token && token[1]){
+				this.token = util.deepclone(token[1]);
+
+				return;
+			}
 		}
 
-		if(!config?.MEDIA_API?.token)
-			throw new InternalError('Missing token');
-		this.token = config.MEDIA_API.token;
+		throw new InternalError('Missing token');
 	}
 
 	prefetch(){
