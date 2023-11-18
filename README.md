@@ -1,7 +1,8 @@
+# The next version of yasha is being moved
+All future developments will happen at [ying-client](https://github.com/davidzeng0/ying-client-node)
+
 # yasha
 Audio Player interface for Discord.js
-
-## The next version of yasha is being moved to [ying-client](https://github.com/davidzeng0/ying-client-node)
 
 *Sange and Yasha, when attuned by the moonlight and used together, become a very powerful combination.*
 
