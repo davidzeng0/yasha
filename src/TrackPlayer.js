@@ -288,7 +288,9 @@ class TrackPlayer extends EventEmitter{
 				connection_data = state.connectionData,
 				mode = connection_data.encryption_mode;
 			if(this.external_encrypt && !is_silence){
-				state.udp.send(buffer);
+				try {
+					state.udp.send(buffer);
+				} catch {}
 
 				continue;
 			}
@@ -358,7 +360,9 @@ class TrackPlayer extends EventEmitter{
 					break;
 			}
 
-			state.udp.send(audio_buffer.subarray(0, len));
+			try {
+				state.udp.send(audio_buffer.subarray(0, len));
+			} catch {}
 		}
 	}
 
