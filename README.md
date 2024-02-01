@@ -1,3 +1,6 @@
+# The next version of yasha is being moved
+All future developments will happen at [ying-client](https://github.com/davidzeng0/ying-client-node)
+
 # yasha
 Audio Player interface for Discord.js
 

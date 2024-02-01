@@ -219,7 +219,7 @@ var api = new class SoundcloudAPI{
 			}
 		}
 
-		throw new SourceError.INTERNAL_ERROR(null, new Error('Could not find client id'));
+		throw new InternalError(null, new Error('Could not find client id'));
 	}
 
 	async request(path, query = {}){
@@ -237,7 +237,7 @@ var api = new class SoundcloudAPI{
 
 			if(res.status == 401){
 				if(tries)
-					throw new SourceError.INTERNAL_ERROR(null, new Error('Unauthorized'));
+					throw new InternalError(null, new Error('Unauthorized'));
 				this.reload();
 
 				continue;
