@@ -158,7 +158,7 @@ class VoiceConnection extends voice.VoiceConnection{
 			this.connected = true;
 		}catch(e){
 			if(this.connected)
-				this.emit('error', GenericError(e));
+				this.emit('error', new GenericError(e));
 			this.destroy();
 		}finally{
 			clearTimeout(this.timeout);
