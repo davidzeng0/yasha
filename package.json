@@ -1,0 +1,29 @@
+{
+  "main": "index.js",
+  "types": "index.d.ts",
+  "name": "yasha",
+  "version": "3.1.0",
+  "dependencies": {
+    "@discordjs/voice": "https://github.com/davidzeng0/voice.git#dist",
+    "discord.js": "^14.11.0",
+    "google-protobuf": "^3.21.2",
+    "js-common": "https://github.com/davidzeng0/js-common.git#dist",
+    "node-fetch": "^2.6.6",
+    "sange": "https://github.com/davidzeng0/sange.git",
+    "sodium": "https://github.com/davidzeng0/sodium.git#dist"
+  },
+  "scripts": {
+    "proto": "mkdir -p build; protoc --proto_path=proto --js_out=import_style=commonjs,binary:build youtube.proto",
+    "build": "npm run proto",
+    "git-publish": "git-publish -b dist"
+  },
+  "devDependencies": {
+    "git-publish": "^2.0.0"
+  },
+  "files": [
+    "src",
+    "build",
+    "proto",
+    "index.d.ts"
+  ]
+}
